@@ -1,13 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
-    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.yts.mx', // or whatever domain serves your banner images
+      },
+      {
+        protocol: 'https',
+        hostname: 'm.media-amazon.com', // Added this to allow Amazon images
+      },
+    ],
   },
 }
 

@@ -1,50 +1,106 @@
-"use client"
+// app/members/movies/page.tsx
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { allMovies, genres } from "@/lib/movie-data"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import Link from "next/link"
-import { useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getMovies, genres } from "@/lib/movie-data";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 export default function MoviesPage() {
-  const searchParams = useSearchParams()
-  const genreParam = searchParams.get("genre")
+  const searchParams = useSearchParams();
+  const genreParam = searchParams.get("genre");
 
-  const [selectedGenre, setSelectedGenre] = useState<string>(genreParam || "All")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [filteredMovies, setFilteredMovies] = useState(allMovies)
-  const moviesPerPage = 50
+  const [selectedGenre, setSelectedGenre] = useState<string>(genreParam || "All");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filteredMovies, setFilteredMovies] = useState<any[]>([]); // Initialize as empty array
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const moviesPerPage = 50;
+
+  useEffect(() => {
+    async function fetchMovies() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Fetch movies using getMovies (expects movie titles, returns Movie objects)
+        const movies = await getMovies([
+          "Inception",
+          "The Matrix",
+          "The Shawshank Redemption",
+          // Add more titles or use allMovieTitles
+        ]);
+        setFilteredMovies(movies || []);
+      } catch (err) {
+        setError("Failed to load movies");
+        console.error("Fetch error:", err);
+        setFilteredMovies([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchMovies();
+  }, []);
 
   useEffect(() => {
     // Filter movies by genre
-    let filtered = [...allMovies]
-    if (selectedGenre !== "All") {
-      filtered = filtered.filter((movie) => movie.genre.includes(selectedGenre))
+    async function filterMovies() {
+      let movies = await getMovies([
+        "Inception",
+        "The Matrix",
+        "The Shawshank Redemption",
+      ]);
+      if (selectedGenre !== "All") {
+        movies = movies.filter((movie) => movie.genre.includes(selectedGenre));
+      }
+      setFilteredMovies(movies || []);
+      setCurrentPage(1); // Reset to first page when genre changes
     }
-    setFilteredMovies(filtered)
-    setCurrentPage(1) // Reset to first page when genre changes
-  }, [selectedGenre])
+    filterMovies();
+  }, [selectedGenre]);
 
   // Calculate pagination
-  const totalPages = Math.ceil(filteredMovies.length / moviesPerPage)
-  const startIndex = (currentPage - 1) * moviesPerPage
-  const endIndex = startIndex + moviesPerPage
-  const currentMovies = filteredMovies.slice(startIndex, endIndex)
+  const totalPages = Math.ceil(filteredMovies.length / moviesPerPage) || 1;
+  const startIndex = (currentPage - 1) * moviesPerPage;
+  const endIndex = startIndex + moviesPerPage;
+  const currentMovies = filteredMovies.slice(startIndex, endIndex);
 
   const handlePreviousPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1)
-      window.scrollTo(0, 0)
+      setCurrentPage(currentPage - 1);
+      window.scrollTo(0, 0);
     }
-  }
+  };
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1)
-      window.scrollTo(0, 0)
+      setCurrentPage(currentPage + 1);
+      window.scrollTo(0, 0);
     }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container py-8 text-center">
+        <div className="animate-pulse">Loading movies...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container py-8 text-center">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
   }
 
   return (
@@ -76,7 +132,7 @@ export default function MoviesPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {currentMovies.map((movie) => (
-              <Link key={movie.id} href={`/members/movie/${movie.id}`} className="group">
+              <Link key={movie.id} href={`/movies/${movie.id}`} className="group">
                 <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
                   <div className="aspect-[2/3] relative">
                     <img
@@ -141,5 +197,5 @@ export default function MoviesPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

@@ -70,7 +70,7 @@ export const newsArticles: NewsArticle[] = [
       
       <p>"Oppenheimer" dominated the night with 7 wins, followed by "Poor Things" with 4 awards. The ceremony also featured memorable performances and emotional acceptance speeches that celebrated the art of filmmaking.</p>
     `,
-    coverImage: "/placeholder.svg?height=600&width=1200",
+    coverImage: "/news2.jpg",
     category: "awards",
     author: {
       name: "Emma Thompson",
@@ -101,7 +101,7 @@ export const newsArticles: NewsArticle[] = [
       
       <p>Industry analysts predict that "Avatar: Fire and Ash" could potentially match or exceed the box office performance of its predecessors, particularly given the expanded global theatrical market and advances in premium format screenings.</p>
     `,
-    coverImage: "/placeholder.svg?height=600&width=1200",
+    coverImage: "/news5.jpg",
     category: "industry",
     author: {
       name: "Michael Rivera",
@@ -161,7 +161,7 @@ export const newsArticles: NewsArticle[] = [
       
       <p>The festival will open with "The Second Act," a comedy-drama directed by Quentin Dupieux, and close with "Animal Kingdom," the latest film from Thomas Cailley.</p>
     `,
-    coverImage: "/placeholder.svg?height=600&width=1200",
+    coverImage: "/news1.jpg",
     category: "industry",
     author: {
       name: "Sophie Laurent",
@@ -193,7 +193,7 @@ export const newsArticles: NewsArticle[] = [
       
       <p>In response to the announcement, Streep expressed her gratitude: "I am deeply honored to receive this recognition from an institution that has done so much to preserve and celebrate the art of filmmaking. The collaborative nature of this medium has given me the opportunity to work with extraordinary filmmakers and fellow actors throughout my career, and this honor is a testament to those collaborations."</p>
     `,
-    coverImage: "/placeholder.svg?height=600&width=1200",
+    coverImage: "/news2.jpg",
     category: "awards",
     author: {
       name: "David Chen",
@@ -241,7 +241,7 @@ export const newsArticles: NewsArticle[] = [
       
       <p>As the film builds to its powerful conclusion, setting the stage for potential future installments, it cements the "Dune" saga as this generation's defining epic. In an era of formulaic franchise filmmaking, "Dune: Part Two" stands as a towering example of what's possible when visionary filmmakers are given the resources and freedom to realize their artistic ambitions.</p>
     `,
-    coverImage: "/placeholder.svg?height=600&width=1200",
+    coverImage: "/news1.jpg",
     category: "reviews",
     author: {
       name: "Alex Morgan",
@@ -305,7 +305,7 @@ export const newsArticles: NewsArticle[] = [
       
       <p><em>"The Fall Guy" opens in theaters nationwide on May 3, 2024.</em></p>
     `,
-    coverImage: "/placeholder.svg?height=600&width=1200",
+    coverImage: "/news5.jpg",
     category: "interviews",
     author: {
       name: "Jessica Wu",
@@ -367,7 +367,7 @@ export const newsArticles: NewsArticle[] = [
       
       <p>"The Multiverse Saga is about to reach its crescendo," Feige said in his closing remarks. "Everything we've been building toward since the end of the Infinity Saga is about to come together in ways that will surprise even the most dedicated fans."</p>
     `,
-    coverImage: "/placeholder.svg?height=600&width=1200",
+    coverImage: "/news5.jpg",
     category: "industry",
     author: {
       name: "Chris Parker",
@@ -447,7 +447,7 @@ export const newsArticles: NewsArticle[] = [
       
       <p>The film is scheduled for release on November 22, 2024, and based on this trailer, it promises to be one of the most visually stunning and dramatically compelling historical epics in recent memory.</p>
     `,
-    coverImage: "/placeholder.svg?height=600&width=1200",
+    coverImage: "/news3.jpg",
     category: "releases",
     author: {
       name: "Marcus Aurelius",
