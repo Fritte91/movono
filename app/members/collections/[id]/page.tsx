@@ -1,62 +1,140 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { getCollectionById, type Collection } from "@/lib/collections-data"
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowLeft, Edit, Share2, Plus } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
-import { CollectionDialog } from "@/components/collection-dialog"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArrowLeft, Edit, Share2, Plus } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/use-toast";
+import { CollectionDialog } from "@/components/collection-dialog";
+import { getMovies, type Movie } from "@/lib/movie-data";
+import { use } from "react";
 
-export default function CollectionDetailPage({ params }: { params: { id: string } }) {
-  const [collection, setCollection] = useState<Collection | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const router = useRouter()
-  const { toast } = useToast()
+export interface Collection {
+  id: string;
+  name: string;
+  description: string;
+  coverImage?: string;
+  isPublic: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
+  movies: Movie[];
+}
+
+export default function CollectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const [collection, setCollection] = useState<Collection | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const { toast } = useToast();
+
+  // Unwrap params using React.use
+  const { id } = use(params);
 
   useEffect(() => {
-    const fetchedCollection = getCollectionById(params.id)
-    if (fetchedCollection) {
-      setCollection(fetchedCollection)
-    } else {
-      router.push("/members/profile?tab=collections")
+    async function loadCollection() {
+      try {
+        // Fetch movies using the API
+        const allMovies = await getMovies([
+          "Inception",
+          "The Matrix",
+          "Fight Club",
+          "The Shawshank Redemption",
+          "The Godfather",
+          "Dune: Part Two",
+          "Oppenheimer",
+          "The Dark Knight",
+          "Pulp Fiction",
+        ]);
+
+        // Define collections dynamically
+        const sampleCollections: Collection[] = [
+          {
+            id: "1",
+            name: "Halloween Marathon",
+            description: "My favorite horror movies for Halloween night",
+            coverImage: "/placeholder.svg?height=400&width=600",
+            isPublic: true,
+            createdAt: new Date(2023, 9, 15),
+            updatedAt: new Date(2023, 9, 15),
+            userId: "user1",
+            movies: allMovies.filter((_, index) => [2, 5, 8].includes(index)),
+          },
+          {
+            id: "2",
+            name: "Best of the 90s",
+            description: "Classic films from the 1990s that defined a generation",
+            coverImage: "/placeholder.svg?height=400&width=600",
+            isPublic: true,
+            createdAt: new Date(2023, 8, 10),
+            updatedAt: new Date(2023, 8, 20),
+            userId: "user1",
+            movies: allMovies
+              .filter((movie) => movie.year >= 1990 && movie.year < 2000)
+              .slice(0, 5),
+          },
+          {
+            id: "3",
+            name: "Sci-Fi Favorites",
+            description: "Mind-bending science fiction films that make you think",
+            coverImage: "/placeholder.svg?height=400&width=600",
+            isPublic: false,
+            createdAt: new Date(2023, 7, 5),
+            updatedAt: new Date(2023, 7, 5),
+            userId: "user1",
+            movies: allMovies.filter((movie) => movie.genre.includes("Sci-Fi")).slice(0, 4),
+          },
+        ];
+
+        // Find the collection by ID
+        const fetchedCollection = sampleCollections.find((c) => c.id === id);
+        if (fetchedCollection) {
+          setCollection(fetchedCollection);
+        } else {
+          router.push("/members/profile?tab=collections");
+        }
+      } catch (error) {
+        console.error("Failed to load collection:", error);
+        router.push("/members/profile?tab=collections");
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [params.id, router])
+    loadCollection();
+  }, [id, router]);
 
   const handleShare = () => {
-    // In a real app, this would copy a shareable link
     toast({
       title: "Link copied to clipboard",
       description: "You can now share this collection with others.",
-    })
-  }
+    });
+  };
 
   const handleSaveCollection = (collectionData: Partial<Collection>) => {
-    if (!collection) return
+    if (!collection) return;
 
-    // Update collection
     setCollection({
       ...collection,
       name: collectionData.name || collection.name,
       description: collectionData.description || collection.description,
       isPublic: collectionData.isPublic !== undefined ? collectionData.isPublic : collection.isPublic,
       updatedAt: new Date(),
-    })
+    });
 
     toast({
       title: "Collection updated",
       description: "Your collection has been updated successfully.",
-    })
-  }
+    });
+  };
 
-  if (!collection) {
+  if (isLoading || !collection) {
     return (
       <div className="container py-20 text-center">
         <div className="animate-pulse">Loading collection...</div>
       </div>
-    )
+    );
   }
 
   return (
@@ -70,7 +148,6 @@ export default function CollectionDetailPage({ params }: { params: { id: string 
           Back to Collections
         </Link>
       </div>
-
       <div className="relative rounded-xl overflow-hidden mb-8">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80"></div>
         <img
@@ -95,7 +172,6 @@ export default function CollectionDetailPage({ params }: { params: { id: string 
               </Button>
             </div>
           </div>
-
           <div className="flex items-center mt-4">
             <Avatar className="h-8 w-8 mr-2">
               <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
@@ -107,7 +183,6 @@ export default function CollectionDetailPage({ params }: { params: { id: string 
           </div>
         </div>
       </div>
-
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold">Movies in this Collection</h2>
         <Button>
@@ -115,7 +190,6 @@ export default function CollectionDetailPage({ params }: { params: { id: string 
           Add Movies
         </Button>
       </div>
-
       {collection.movies.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {collection.movies.map((movie) => (
@@ -154,7 +228,6 @@ export default function CollectionDetailPage({ params }: { params: { id: string 
           </Button>
         </div>
       )}
-
       <CollectionDialog
         open={isEditing}
         onOpenChange={setIsEditing}
@@ -162,5 +235,5 @@ export default function CollectionDetailPage({ params }: { params: { id: string 
         onSave={handleSaveCollection}
       />
     </div>
-  )
+  );
 }

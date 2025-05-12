@@ -1,15 +1,15 @@
-import { allMovies, type Movie } from "./movie-data"
+import { allMovies, type Movie } from "./movie-data";
 
 export interface Collection {
-  id: string
-  name: string
-  description: string
-  coverImage?: string
-  isPublic: boolean
-  createdAt: Date
-  updatedAt: Date
-  userId: string
-  movies: Movie[]
+  id: string;
+  name: string;
+  description: string;
+  coverImage?: string;
+  isPublic: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
+  movies: Movie[];
 }
 
 // Sample collections for demo purposes
@@ -23,7 +23,9 @@ export const sampleCollections: Collection[] = [
     createdAt: new Date(2023, 9, 15),
     updatedAt: new Date(2023, 9, 15),
     userId: "user1",
-    movies: allMovies.filter((_, index) => [2, 5, 8].includes(index)),
+    movies: allMovies && Array.isArray(allMovies)
+      ? allMovies.filter((_, index) => [2, 5, 8].includes(index))
+      : [],
   },
   {
     id: "2",
@@ -34,7 +36,9 @@ export const sampleCollections: Collection[] = [
     createdAt: new Date(2023, 8, 10),
     updatedAt: new Date(2023, 8, 20),
     userId: "user1",
-    movies: allMovies.filter((movie) => movie.year >= 1990 && movie.year < 2000).slice(0, 5),
+    movies: allMovies && Array.isArray(allMovies)
+      ? allMovies.filter((movie) => movie.year >= 1990 && movie.year < 2000).slice(0, 5)
+      : [],
   },
   {
     id: "3",
@@ -45,18 +49,20 @@ export const sampleCollections: Collection[] = [
     createdAt: new Date(2023, 7, 5),
     updatedAt: new Date(2023, 7, 5),
     userId: "user1",
-    movies: allMovies.filter((movie) => movie.genre.includes("Sci-Fi")).slice(0, 4),
+    movies: allMovies && Array.isArray(allMovies)
+      ? allMovies.filter((movie) => movie.genre.includes("Sci-Fi")).slice(0, 4)
+      : [],
   },
-]
+];
 
 export function getCollectionById(id: string): Collection | undefined {
-  return sampleCollections.find((collection) => collection.id === id)
+  return sampleCollections.find((collection) => collection.id === id);
 }
 
 export function getUserCollections(userId: string): Collection[] {
-  return sampleCollections.filter((collection) => collection.userId === userId)
+  return sampleCollections.filter((collection) => collection.userId === userId);
 }
 
 export function getPublicCollections(): Collection[] {
-  return sampleCollections.filter((collection) => collection.isPublic)
+  return sampleCollections.filter((collection) => collection.isPublic);
 }

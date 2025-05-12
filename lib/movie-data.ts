@@ -1,7 +1,14 @@
-// lib/movie-data.ts
 import { getMoviesByTitle } from './api/getMoviesByTitle';
 import { getMovieByIdFromAPI } from './api/getMovieById';
 import { getSimilarMovies } from './api/getSimilarMovies';
+
+export interface Movie {
+  id: string;
+  title: string;
+  year: number;
+  genre: string[];
+  posterUrl?: string;
+}
 
 export const popularTitles = [
   "Inception",
@@ -73,37 +80,49 @@ export const newReleasesTitles = [
 ];
 
 export const upcomingTitles = [
-  "Mission: Impossible – The Final Reckoning",  // May 23, 2025
-  "Final Destination: Bloodlines",              // May 16, 2025
-  "Fear Street: Prom Queen",                    // May 23, 2025 (Netflix)
-  "Deep Cover",                                 // June 12, 2025 (Amazon Prime Video)
-  "M3GAN 2.0",                                  // June 6, 2025
-  "28 Years Later",                             // June 20, 2025
-  "F1",                                         // June 27, 2025
-  "Everything's Going to Be Great",             // June 2025
-  "Sovereign",                                  // June 2025
-  "Bride Hard",                                 // June 2025
-  "Dangerous Animals",                          // June 2025
-  "Materialists",                               // June 2025
-  "The Phoenician Scheme",                      // June 6, 2025
-  "The Life of Chuck",                          // June 6, 2025 (Limited Release)
-  "Daydreamers",                                // June 3, 2025
-  "Book of Joshua: Walls of Jericho",           // June 3, 2025
-  "Mountainhead",                               // May 31, 2025
-  "Juliet & Romeo",                             // May 2025
-  "Thunderbolts*",                              // May 2025
-  "Bring Her Back",                             // May 2025
-  "Clown in a Cornfield",                       // May 2025
-  "Last Bullet",                                // May 2025
-  "Tin Soldier",                                // May 2025
-  "Rust",                                       // May 2025
-  "Bad Influence",                              // May 2025
-  "Nonnas",                                     // May 2025
-  "Karate Kid: Legends",                        // May 2025
+  "Mission: Impossible – The Final Reckoning",
+  "Final Destination: Bloodlines",
+  "Fear Street: Prom Queen",
+  "Deep Cover",
+  "M3GAN 2.0",
+  "28 Years Later",
+  "F1",
+  "Everything's Going to Be Great",
+  "Sovereign",
+  "Bride Hard",
+  "Dangerous Animals",
+  "Materialists",
+  "The Phoenician Scheme",
+  "The Life of Chuck",
+  "Daydreamers",
+  "Book of Joshua: Walls of Jericho",
+  "Mountainhead",
+  "Juliet & Romeo",
+  "Thunderbolts*",
+  "Bring Her Back",
+  "Clown in a Cornfield",
+  "Last Bullet",
+  "Tin Soldier",
+  "Rust",
+  "Bad Influence",
+  "Nonnas",
+  "Karate Kid: Legends"
 ];
 
-
 export const allMovieTitles = [...popularTitles, ...topRatedTitles, ...newReleasesTitles];
+
+// Static allMovies array for collections-data.ts
+export const allMovies: Movie[] = [
+  { id: "1", title: "Inception", year: 2010, genre: ["Sci-Fi", "Thriller"], posterUrl: "/placeholder.svg" },
+  { id: "2", title: "The Matrix", year: 1999, genre: ["Sci-Fi", "Action"], posterUrl: "/placeholder.svg" },
+  { id: "3", title: "Fight Club", year: 1999, genre: ["Drama"], posterUrl: "/placeholder.svg" },
+  { id: "4", title: "The Shawshank Redemption", year: 1994, genre: ["Drama"], posterUrl: "/placeholder.svg" },
+  { id: "5", title: "The Godfather", year: 1972, genre: ["Crime", "Drama"], posterUrl: "/placeholder.svg" },
+  { id: "6", title: "Dune: Part Two", year: 2024, genre: ["Sci-Fi", "Adventure"], posterUrl: "/placeholder.svg" },
+  { id: "7", title: "Oppenheimer", year: 2023, genre: ["Biography", "Drama"], posterUrl: "/placeholder.svg" },
+  { id: "8", title: "The Dark Knight", year: 2008, genre: ["Action", "Crime"], posterUrl: "/placeholder.svg" },
+  { id: "9", title: "Pulp Fiction", year: 1994, genre: ["Crime", "Drama"], posterUrl: "/placeholder.svg" },
+];
 
 // Consolidated genres array (matches OMDB API genres)
 export const genres = [
@@ -131,22 +150,22 @@ export const genres = [
 export const getMovies = async (titles: string[]) => {
   const movies = await getMoviesByTitle(titles);
   return movies;
-}
+};
 
 // Example for getting popular movies
 export const getPopularMovies = async () => {
   return await getMovies(popularTitles);
-}
+};
 
 // Example for getting top-rated movies
 export const getTopRatedMovies = async () => {
   return await getMovies(topRatedTitles);
-}
+};
 
 // Example for getting new releases
 export const getNewReleasesMovies = async () => {
   return await getMovies(newReleasesTitles);
-}
+};
 
 // Add this function
 export const getMovieById = async (id: string) => {
