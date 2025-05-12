@@ -1,9 +1,39 @@
-import { Button } from "@/components/ui/button"
-import { Film, Play } from "lucide-react"
-import Link from "next/link"
-import { SiteFooter } from "@/components/site-footer"
+"use client";
+
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import { Button } from "@/components/ui/button";
+import { Film, Play } from "lucide-react";
+import Link from "next/link";
+import { SiteFooter } from "@/components/site-footer";
 
 export default function Home() {
+  const backgroundImages = [
+    "/cinema1.jpg",
+    "/cinema2.jpg",
+    "/cinema3.jpg",
+    "/cinema4.jpg",
+    "/cinema5.jpg",
+    "/cinema6.jpg",
+  ];
+
+  const popcornImages = [
+    "/popcorn1.jpg",
+    "/popcorn2.jpg",
+    "/popcorn3.jpg",
+    "/popcorn4.jpg",
+  ];
+
+  const [heroImage, setHeroImage] = useState<string>("");
+  const [popcornImage, setPopcornImage] = useState<string>("");
+
+  useEffect(() => {
+    const randomHeroImage = backgroundImages[Math.floor(Math.random() * backgroundImages.length)];
+    const randomPopcornImage = popcornImages[Math.floor(Math.random() * popcornImages.length)];
+    setHeroImage(randomHeroImage);
+    setPopcornImage(randomPopcornImage);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border/40 backdrop-blur-sm bg-background/80 fixed w-full z-50">
@@ -27,11 +57,25 @@ export default function Home() {
         <section className="relative h-[80vh] flex items-center">
           <div className="absolute inset-0 z-0">
             <div className="absolute inset-0 bg-gradient-to-r from-black to-transparent opacity-90 z-10 hero-gradient"></div>
-            <img
-              src="/placeholder.svg?height=1080&width=1920"
-              alt="Movie collage"
-              className="w-full h-full object-cover"
-            />
+            {heroImage ? (
+              <Image
+                src={heroImage}
+                alt="Cinema background"
+                fill
+                style={{ objectFit: "cover" }}
+                priority
+                quality={85}
+              />
+            ) : (
+              <Image
+                src="/placeholder.svg?height=1080&width=1920"
+                alt="Cinema background"
+                fill
+                style={{ objectFit: "cover" }}
+                priority
+                quality={85}
+              />
+            )}
           </div>
 
           <div className="container relative z-20">
@@ -123,9 +167,29 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="py-20">
-          <div className="container text-center">
-            <h2 className="text-3xl font-bold mb-12">Ready to Join?</h2>
+        <section className="py-20 relative">
+          <div className="absolute inset-0 z-0">
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 to-transparent opacity-80 z-10"></div>
+            {popcornImage ? (
+              <Image
+                src={popcornImage}
+                alt="Popcorn background"
+                fill
+                style={{ objectFit: "cover" }}
+                quality={85}
+              />
+            ) : (
+              <Image
+                src="/placeholder.svg?height=1080&width=1920"
+                alt="Popcorn background"
+                fill
+                style={{ objectFit: "cover" }}
+                quality={85}
+              />
+            )}
+          </div>
+          <div className="container text-center relative z-20">
+            <h2 className="text-3xl font-bold mb-12 text-white">Ready to Join?</h2>
             <Link href="/signup">
               <Button size="lg" className="animate-pulse-glow">
                 Create Your Account
@@ -137,5 +201,5 @@ export default function Home() {
 
       <SiteFooter />
     </div>
-  )
+  );
 }

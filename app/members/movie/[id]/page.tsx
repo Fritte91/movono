@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import React from "react";
-import { getMovieById, getSimilarMovies } from "@/lib/movie-data";
+import { getMovieById, getSimilarMovies, type Movie } from "@/lib/movie-data";
 import { RatingStars } from "@/components/rating-stars";
 import { Button } from "@/components/ui/button";
 import { MovieSlider } from "@/components/movie-slider";
@@ -12,35 +12,35 @@ import { useRouter } from "next/navigation";
 import { TrailerPlayer } from "@/components/trailer-player";
 import { MovieComments } from "@/components/movie-comments";
 
-interface Movie {
+interface DetailedMovie {
   id: string;
   title: string;
   posterUrl: string;
-  youtubeTrailerUrl: string | null;
+  youtubeTrailerUrl?: string | null;
   year: number;
-  runtime: number;
-  language: string[];
-  country: string[];
-  genre: string[];
-  plot: string;
-  director: string;
-  writer: string;
-  cast: string[];
-  awards: string;
-  metascore: number;
-  imdbVotes: number;
-  type: string;
-  dvd: string;
-  boxOffice: string;
-  production: string;
-  website: string;
-  ratings: {
+  runtime?: number;
+  language?: string[];
+  country?: string[];
+  genre?: string[];
+  plot?: string;
+  director?: string;
+  writer?: string;
+  cast?: string[];
+  awards?: string;
+  metascore?: number;
+  imdbVotes?: number;
+  type?: string;
+  dvd?: string;
+  boxOffice?: string;
+  production?: string;
+  website?: string;
+  ratings?: {
     imdb: number;
     rottenTomatoes: string;
     metacritic: number;
   };
-  userRating: number;
-  torrents: {
+  userRating?: number;
+  torrents?: {
     url: string;
     quality: string;
     size: string;
@@ -50,7 +50,7 @@ interface Movie {
 }
 
 export default function MoviePage({ params }: { params: Promise<{ id: string }> }) {
-  const [movie, setMovie] = useState<Movie | null>(null);
+  const [movie, setMovie] = useState<DetailedMovie | null>(null);
   const [similarMovies, setSimilarMovies] = useState<Movie[]>([]);
   const [userRating, setUserRating] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,7 +71,11 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
           setMovie(fetchedMovie);
           setUserRating(fetchedMovie.userRating || 0);
           const similar = await getSimilarMovies(resolvedParams.id);
+          console.log("Similar movies fetched:", similar.map((m) => ({ title: m.title, genres: m.genre })));
           setSimilarMovies(similar || []);
+          if (similar.length === 0) {
+            console.warn(`No similar movies found for ID ${resolvedParams.id}`);
+          }
         } else {
           setError("Movie not found");
           router.push("/members");
@@ -106,7 +110,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     });
   };
 
-  const handleTorrentDownload = (torrent: Movie["torrents"][0]) => {
+  const handleTorrentDownload = (torrent: DetailedMovie["torrents"][0]) => {
     toast({
       title: "Download started",
       description: `Downloading ${movie?.title} in ${torrent.quality} (${torrent.size}).`,
@@ -152,7 +156,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
               <img src={movie.posterUrl} alt={movie.title} className="w-full h-auto" />
             </div>
             <div className="mt-6 space-y-4">
-              {movie.torrents.length > 0 ? (
+              {movie.torrents && movie.torrents.length > 0 ? (
                 movie.torrents.map((torrent) => (
                   <Button
                     key={torrent.url}
@@ -199,64 +203,84 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                     {movie.year}
                   </span>
                 </div>
-                <span>•</span>
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  <span className="bg-background/80 rounded-full px-2 py-1 text-sm">
-                    {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
+                {movie.runtime && (
+                  <>
+                    <span>•</span>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      <span className="bg-background/80 rounded-full px-2 py-1 text-sm">
+                        {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
+                      </span>
+                    </div>
+                  </>
+                )}
+                {movie.language && movie.language.length > 0 && (
+                  <>
+                    <span>•</span>
+                    <div className="flex items-center gap-1">
+                      <Globe className="h-4 w-4" />
+                      <span className="bg-background/80 rounded-full px-2 py-1 text-sm">
+                        {movie.language.join(", ")}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+            {genres.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {genres.map((genre) => (
+                  <span key={genre} className="px-3 py-1 bg-secondary rounded-full text-sm">
+                    {genre}
                   </span>
-                </div>
-                <span>•</span>
-                <div className="flex items-center gap-1">
-                  <Globe className="h-4 w-4" />
-                  <span className="bg-background/80 rounded-full px-2 py-1 text-sm">
-                    {movie.language.join(", ")}
-                  </span>
-                </div>
+                ))}
               </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {genres.map((genre) => (
-                <span key={genre} className="px-3 py-1 bg-secondary rounded-full text-sm">
-                  {genre}
-                </span>
-              ))}
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-xl font-semibold">Overview</h2>
-              <p className="text-muted-foreground">{movie.plot}</p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            )}
+            {movie.plot && (
               <div className="space-y-2">
-                <h2 className="text-xl font-semibold">Director</h2>
-                <p className="text-muted-foreground">{movie.director}</p>
+                <h2 className="text-xl font-semibold">Overview</h2>
+                <p className="text-muted-foreground">{movie.plot}</p>
               </div>
-              <div className="space-y-2">
-                <h2 className="text-xl font-semibold">Cast</h2>
-                <p className="text-muted-foreground">{movie.cast.join(", ")}</p>
+            )}
+            {(movie.director || movie.cast) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {movie.director && (
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-semibold">Director</h2>
+                    <p className="text-muted-foreground">{movie.director}</p>
+                  </div>
+                )}
+                {movie.cast && movie.cast.length > 0 && (
+                  <div className="space-y-2">
+                    <h2 className="text-xl font-semibold">Cast</h2>
+                    <p className="text-muted-foreground">{movie.cast.join(", ")}</p>
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Ratings</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div className="bg-card border border-border rounded-lg p-4 text-center">
-                  <div className="text-sm text-muted-foreground mb-1">IMDb</div>
-                  <div className="text-2xl font-bold">{movie.ratings.imdb.toFixed(1)}/10</div>
-                </div>
-                <div className="bg-card border border-border rounded-lg p-4 text-center">
-                  <div className="text-sm text-muted-foreground mb-1">Rotten Tomatoes</div>
-                  <div className="text-2xl font-bold">{movie.ratings.rottenTomatoes}</div>
-                </div>
-                <div className="bg-card border border-border rounded-lg p-4 text-center">
-                  <div className="text-sm text-muted-foreground mb-1">Metacritic</div>
-                  <div className="text-2xl font-bold">{movie.ratings.metacritic}/100</div>
-                </div>
-                <div className="bg-card border border-border rounded-lg p-4 text-center">
-                  <div className="text-sm text-muted-foreground mb-1">Movono Members</div>
-                  <div className="text-2xl font-bold">{(Math.random() * 2 + 3).toFixed(1)}/5</div>
+            )}
+            {movie.ratings && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-semibold">Ratings</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div className="bg-card border border-border rounded-lg p-4 text-center">
+                    <div className="text-sm text-muted-foreground mb-1">IMDb</div>
+                    <div className="text-2xl font-bold">{movie.ratings.imdb.toFixed(1)}/10</div>
+                  </div>
+                  <div className="bg-card border border-border rounded-lg p-4 text-center">
+                    <div className="text-sm text-muted-foreground mb-1">Rotten Tomatoes</div>
+                    <div className="text-2xl font-bold">{movie.ratings.rottenTomatoes}</div>
+                  </div>
+                  <div className="bg-card border border-border rounded-lg p-4 text-center">
+                    <div className="text-sm text-muted-foreground mb-1">Metacritic</div>
+                    <div className="text-2xl font-bold">{movie.ratings.metacritic}/100</div>
+                  </div>
+                  <div className="bg-card border border-border rounded-lg p-4 text-center">
+                    <div className="text-sm text-muted-foreground mb-1">Movono Members</div>
+                    <div className="text-2xl font-bold">{(Math.random() * 2 + 3).toFixed(1)}/5</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             <div className="space-y-4">
               <h2 className="text-xl font-semibold">Your Rating</h2>
               <div className="flex items-center gap-4">
