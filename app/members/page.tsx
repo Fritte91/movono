@@ -15,6 +15,7 @@ import {
   topRatedTitles,
   newReleasesTitles,
   allMovieTitles,
+  upcomingTitles,
 } from "@/lib/movie-data"
 
 export default function MembersPage() {
@@ -22,30 +23,33 @@ export default function MembersPage() {
   const [topRated, setTopRated] = useState<Movie[]>([])
   const [newReleases, setNewReleases] = useState<Movie[]>([])
   const [allMovies, setAllMovies] = useState<Movie[]>([])
+  const [upcoming, setUpcoming] = useState<Movie[]>([])
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [popular, top, newR, all] = await Promise.all([
+        console.log("upcomingTitles: ", upcomingTitles); // ✅ This is working
+  
+        const [popular, top, newR, all, upcoming] = await Promise.all([
           getMoviesByTitle(popularTitles),
           getMoviesByTitle(topRatedTitles),
           getMoviesByTitle(newReleasesTitles),
           getMoviesByTitle(allMovieTitles),
-        ])
-        
-        console.log('Fetched Movies: ', { popular, top, newR, all }) // Log the fetched data
-        
-        setPopularMovies(popular)
-        setTopRated(top)
-        setNewReleases(newR)
-        setAllMovies(all)
+          getMoviesByTitle(upcomingTitles),
+        ]);
+  
+        setPopularMovies(popular);
+        setTopRated(top);
+        setNewReleases(newR);
+        setAllMovies(all);
+        setUpcoming(upcoming); // ✅ Changed to setUpcoming
       } catch (error) {
-        console.error("Error fetching movie data:", error)
+        console.error("Error fetching movie data:", error);
       }
-    }
-
-    fetchData()
-  }, [])
+    };
+  
+    fetchData();
+  }, []);
 
   return (
     <div className="pb-20">
@@ -125,7 +129,7 @@ export default function MembersPage() {
           {/* Movie sliders */}
           <div className="space-y-12">
             <MovieSlider title="Popular Movies" movies={popularMovies} />
-            <MovieSlider title="Coming Soon" movies={upcomingMovies} />
+            <MovieSlider title="Coming Soon" movies={upcoming} />
             <MovieSlider title="New Releases" movies={newReleases} />
             <NewsPreview />
             <MovieSlider title="Top Rated" movies={topRated} />

@@ -72,6 +72,37 @@ export const newReleasesTitles = [
   "Saltburn"
 ];
 
+export const upcomingTitles = [
+  "Mission: Impossible – The Final Reckoning",  // May 23, 2025
+  "Final Destination: Bloodlines",              // May 16, 2025
+  "Fear Street: Prom Queen",                    // May 23, 2025 (Netflix)
+  "Deep Cover",                                 // June 12, 2025 (Amazon Prime Video)
+  "M3GAN 2.0",                                  // June 6, 2025
+  "28 Years Later",                             // June 20, 2025
+  "F1",                                         // June 27, 2025
+  "Everything's Going to Be Great",             // June 2025
+  "Sovereign",                                  // June 2025
+  "Bride Hard",                                 // June 2025
+  "Dangerous Animals",                          // June 2025
+  "Materialists",                               // June 2025
+  "The Phoenician Scheme",                      // June 6, 2025
+  "The Life of Chuck",                          // June 6, 2025 (Limited Release)
+  "Daydreamers",                                // June 3, 2025
+  "Book of Joshua: Walls of Jericho",           // June 3, 2025
+  "Mountainhead",                               // May 31, 2025
+  "Juliet & Romeo",                             // May 2025
+  "Thunderbolts*",                              // May 2025
+  "Bring Her Back",                             // May 2025
+  "Clown in a Cornfield",                       // May 2025
+  "Last Bullet",                                // May 2025
+  "Tin Soldier",                                // May 2025
+  "Rust",                                       // May 2025
+  "Bad Influence",                              // May 2025
+  "Nonnas",                                     // May 2025
+  "Karate Kid: Legends",                        // May 2025
+];
+
+
 export const allMovieTitles = [...popularTitles, ...topRatedTitles, ...newReleasesTitles];
 
 // Consolidated genres array (matches OMDB API genres)
@@ -120,6 +151,11 @@ export const getNewReleasesMovies = async () => {
 // Add this function
 export const getMovieById = async (id: string) => {
   return await getMovieByIdFromAPI(id);
+};
+
+// Example for getting upcoming movies
+export const getUpcomingMovies = async () => {
+  return await getMovies(upcomingTitles);
 };
 
 export { getSimilarMovies };

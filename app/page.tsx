@@ -8,13 +8,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MovieSlider } from "@/components/movie-slider"
 import { NewsPreview } from "@/components/news-preview"
 import { genres } from "@/lib/movie-data"
-import { upcomingMovies } from "@/lib/upcoming-movies-data"
 import { getMoviesByTitle } from "@/lib/api/getMoviesByTitle"
 import {
   popularTitles,
   topRatedTitles,
   newReleasesTitles,
   allMovieTitles,
+  upcomingTitles
 } from "@/lib/movie-data"
 
 export default function MembersPage() {
@@ -22,23 +22,26 @@ export default function MembersPage() {
   const [topRated, setTopRated] = useState<Movie[]>([])
   const [newReleases, setNewReleases] = useState<Movie[]>([])
   const [allMovies, setAllMovies] = useState<Movie[]>([])
+  const [upcomingMovies, setUpcomingMovies] = useState<Movie[]>([]) // ✅ Renamed to match slider prop
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [popular, top, newR, all] = await Promise.all([
+        const [popular, top, newR, all, upcoming] = await Promise.all([
+          console.log("upcomingTitles: ", upcomingTitles)
           getMoviesByTitle(popularTitles),
           getMoviesByTitle(topRatedTitles),
           getMoviesByTitle(newReleasesTitles),
           getMoviesByTitle(allMovieTitles),
+          getMoviesByTitle(upcomingTitles),
         ])
-        
-        console.log('Fetched Movies: ', { popular, top, newR, all }) // Log the fetched data
-        
+
         setPopularMovies(popular)
         setTopRated(top)
         setNewReleases(newR)
         setAllMovies(all)
+        setUpcoming(upcomingM) // ✅ Consistent name
+
       } catch (error) {
         console.error("Error fetching movie data:", error)
       }
@@ -124,18 +127,14 @@ export default function MembersPage() {
 
           {/* Movie sliders */}
           <div className="space-y-12">
-            <MovieSlider genre="Popular" />
-            <MovieSlider genre="Coming Soon" />
-            <MovieSlider genre="New Releases" />
+            <MovieSlider genre="Popular" movies={popularMovies} />
+            <MovieSlider genre="Coming Soon" movies={upcomingMovies} /> {/* ✅ Correct prop used */}
+            <MovieSlider genre="New Releases" movies={newReleases} />
             <NewsPreview />
-            <MovieSlider genre="Top Rated" />
+            <MovieSlider genre="Top Rated" movies={topRated} />
 
-            {/* Genre-based filtering */}
             {["Action", "Adventure", "Sci-Fi", "Drama", "Crime", "Thriller"].map((genre) => (
-              <MovieSlider
-                key={genre}
-                genre={genre}
-              />
+              <MovieSlider key={genre} genre={genre} />
             ))}
 
             <MovieSlider genre="Your Favorites" />
