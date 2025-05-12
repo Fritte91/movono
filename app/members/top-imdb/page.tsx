@@ -1,28 +1,90 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { allMovies, genres } from "@/lib/movie-data"
-import Link from "next/link"
-import { RatingStars } from "@/components/rating-stars"
+import { useState, useEffect, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { getMovies, genres, allMovieTitles } from "@/lib/movie-data";
+import Link from "next/link";
+import { RatingStars } from "@/components/rating-stars";
+
+interface Movie {
+  id: string;
+  title: string;
+  year: number;
+  posterUrl: string;
+  genre: string[];
+  ratings: {
+    imdb: number;
+    rottenTomatoes: string;
+    metacritic: number;
+  };
+  runtime: number;
+  released: string;
+  director: string;
+  writer: string;
+  actors: string[];
+  plot: string;
+  language: string[];
+  country: string[];
+  awards: string;
+  metascore: number;
+  imdbVotes: number;
+  type: string;
+  dvd: string;
+  boxOffice: string;
+  production: string;
+  website: string;
+}
 
 export default function TopImdbPage() {
-  const [selectedGenre, setSelectedGenre] = useState<string>("All")
-  const [topMovies, setTopMovies] = useState(allMovies)
+  const [selectedGenre, setSelectedGenre] = useState<string>("All");
+  const [allMovies, setAllMovies] = useState<Movie[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Sort by IMDB rating
-    let filtered = [...allMovies].sort((a, b) => b.ratings.imdb - a.ratings.imdb)
-
-    // Filter by genre if not "All"
-    if (selectedGenre !== "All") {
-      filtered = filtered.filter((movie) => movie.genre.includes(selectedGenre))
+    async function fetchMovies() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const movies = await getMovies(allMovieTitles);
+        setAllMovies(movies || []);
+      } catch (err) {
+        setError("Failed to load movies");
+        console.error("Fetch error:", err);
+        setAllMovies([]);
+      } finally {
+        setIsLoading(false);
+      }
     }
+    fetchMovies();
+  }, []);
 
-    // Limit to top 100
-    setTopMovies(filtered.slice(0, 100))
-  }, [selectedGenre])
+  const topMovies = useMemo(() => {
+    let filtered = [...allMovies].sort((a, b) => (b.ratings?.imdb || 0) - (a.ratings?.imdb || 0));
+    if (selectedGenre !== "All") {
+      filtered = filtered.filter((movie) =>
+        movie?.genre && Array.isArray(movie.genre) && movie.genre.includes(selectedGenre)
+      );
+    }
+    return filtered.slice(0, 100);
+  }, [allMovies, selectedGenre]);
+
+  if (isLoading) {
+    return (
+      <div className="container py-8 text-center">
+        <div className="animate-pulse">Loading movies...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container py-8 text-center">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-8">
@@ -69,8 +131,12 @@ export default function TopImdbPage() {
                     {movie.title} <span className="text-muted-foreground">({movie.year})</span>
                   </h3>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-yellow-400 font-medium">{movie.ratings.imdb}</span>
-                    <RatingStars initialRating={Math.round(movie.ratings.imdb / 2)} readOnly size="sm" />
+                    <span className="text-yellow-400 font-medium">{movie.ratings?.imdb || "N/A"}</span>
+                    <RatingStars
+                      initialRating={Math.round((movie.ratings?.imdb || 0) / 2)}
+                      readOnly
+                      size="sm"
+                    />
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {movie.genre.map((g) => (
@@ -79,6 +145,7 @@ export default function TopImdbPage() {
                       </span>
                     ))}
                   </div>
+                  <p className="text-sm text-muted-foreground mt-1">{movie.plot}</p>
                 </div>
 
                 <Button variant="ghost" size="sm" className="shrink-0">
@@ -90,5 +157,5 @@ export default function TopImdbPage() {
         ))}
       </div>
     </div>
-  )
+  );
 }

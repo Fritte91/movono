@@ -1,4 +1,3 @@
-// app/members/movies/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,10 +9,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getMovies, genres } from "@/lib/movie-data";
+import { getMovies, genres, allMovieTitles } from "@/lib/movie-data";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+
+interface Movie {
+  id: string;
+  title: string;
+  year: number;
+  posterUrl: string;
+  genre: string[];
+  ratings: {
+    imdb: number;
+    rottenTomatoes: string;
+    metacritic: number;
+  };
+  runtime: number;
+  released: string;
+  director: string;
+  writer: string;
+  actors: string[];
+  plot: string;
+  language: string[];
+  country: string[];
+  awards: string;
+  metascore: number;
+  imdbVotes: number;
+  type: string;
+  dvd: string;
+  boxOffice: string;
+  production: string;
+  website: string;
+}
 
 export default function MoviesPage() {
   const searchParams = useSearchParams();
@@ -21,7 +49,8 @@ export default function MoviesPage() {
 
   const [selectedGenre, setSelectedGenre] = useState<string>(genreParam || "All");
   const [currentPage, setCurrentPage] = useState(1);
-  const [filteredMovies, setFilteredMovies] = useState<any[]>([]); // Initialize as empty array
+  const [allMovies, setAllMovies] = useState<Movie[]>([]);
+  const [filteredMovies, setFilteredMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const moviesPerPage = 50;
@@ -31,13 +60,9 @@ export default function MoviesPage() {
       setIsLoading(true);
       setError(null);
       try {
-        // Fetch movies using getMovies (expects movie titles, returns Movie objects)
-        const movies = await getMovies([
-          "Inception",
-          "The Matrix",
-          "The Shawshank Redemption",
-          // Add more titles or use allMovieTitles
-        ]);
+        const movies = await getMovies(allMovieTitles);
+        console.log("Movies from getMovies:", movies); // Debug
+        setAllMovies(movies || []);
         setFilteredMovies(movies || []);
       } catch (err) {
         setError("Failed to load movies");
@@ -51,21 +76,15 @@ export default function MoviesPage() {
   }, []);
 
   useEffect(() => {
-    // Filter movies by genre
-    async function filterMovies() {
-      let movies = await getMovies([
-        "Inception",
-        "The Matrix",
-        "The Shawshank Redemption",
-      ]);
-      if (selectedGenre !== "All") {
-        movies = movies.filter((movie) => movie.genre.includes(selectedGenre));
-      }
-      setFilteredMovies(movies || []);
-      setCurrentPage(1); // Reset to first page when genre changes
+    let movies = allMovies;
+    if (selectedGenre !== "All") {
+      movies = allMovies.filter((movie) =>
+        movie?.genre && Array.isArray(movie.genre) && movie.genre.includes(selectedGenre)
+      );
     }
-    filterMovies();
-  }, [selectedGenre]);
+    setFilteredMovies(movies || []);
+    setCurrentPage(1); // Reset to first page when genre changes
+  }, [selectedGenre, allMovies]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredMovies.length / moviesPerPage) || 1;
@@ -148,6 +167,7 @@ export default function MoviesPage() {
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
                       <div className="text-sm font-medium truncate">{movie.title}</div>
                       <div className="text-xs text-gray-400">{movie.year}</div>
+                      <div className="text-xs text-gray-400">{movie.ratings.imdb || "N/A"}/10</div>
                     </div>
                   </div>
                 </div>

@@ -1,19 +1,16 @@
-// app/members/movie/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import React from "react";
-import { getMovieById, getSimilarMovies } from "@/lib/movie-data"; // Use modie-data if Option B
+import { getMovieById, getSimilarMovies } from "@/lib/movie-data";
 import { RatingStars } from "@/components/rating-stars";
 import { Button } from "@/components/ui/button";
 import { MovieSlider } from "@/components/movie-slider";
-import { Clock, Calendar, Globe, Download, Share2, Subtitles } from "lucide-react";
+import { Clock, Calendar, Globe, Subtitles, Share2, Download } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { TrailerPlayer } from "@/components/trailer-player";
 import { MovieComments } from "@/components/movie-comments";
-import { AchievementToast } from "@/components/achievement-toast";
-import type { Achievement } from "@/lib/achievements-data";
 
 interface Movie {
   id: string;
@@ -22,27 +19,40 @@ interface Movie {
   youtubeTrailerUrl: string | null;
   year: number;
   runtime: number;
-  language: string;
+  language: string[];
+  country: string[];
   genre: string[];
   plot: string;
   director: string;
+  writer: string;
   cast: string[];
+  awards: string;
+  metascore: number;
+  imdbVotes: number;
+  type: string;
+  dvd: string;
+  boxOffice: string;
+  production: string;
+  website: string;
   ratings: {
     imdb: number;
-    rottenTomatoes: number;
+    rottenTomatoes: string;
     metacritic: number;
   };
-  userRating?: number;
-  torrents?: any[];
-  rating?: string;
+  userRating: number;
+  torrents: {
+    url: string;
+    quality: string;
+    size: string;
+    seeds: number;
+    peers: number;
+  }[];
 }
 
 export default function MoviePage({ params }: { params: Promise<{ id: string }> }) {
   const [movie, setMovie] = useState<Movie | null>(null);
   const [similarMovies, setSimilarMovies] = useState<Movie[]>([]);
   const [userRating, setUserRating] = useState<number>(0);
-  const [unlockedAchievement, setUnlockedAchievement] = useState<Achievement | null>(null);
-  const [downloadCount, setDownloadCount] = useState<number>(7);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -89,38 +99,17 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     }
   };
 
-  const handleDownload = () => {
-    const newCount = downloadCount + 1;
-    setDownloadCount(newCount);
-
-    toast({
-      title: "Download started",
-      description: "Your torrent file is being prepared for download.",
-    });
-
-    if (newCount === 1) {
-      setUnlockedAchievement({
-        id: "download-1",
-        name: "First Download",
-        description: "Downloaded your first movie",
-        icon: "download",
-        unlockedAt: new Date(),
-      });
-    } else if (newCount === 10) {
-      setUnlockedAchievement({
-        id: "download-10",
-        name: "Movie Enthusiast",
-        description: "Downloaded 10 movies",
-        icon: "film",
-        unlockedAt: new Date(),
-      });
-    }
-  };
-
   const handleSubtitlesDownload = () => {
     toast({
       title: "Subtitles download started",
       description: "Your subtitle file is being prepared for download.",
+    });
+  };
+
+  const handleTorrentDownload = (torrent: Movie["torrents"][0]) => {
+    toast({
+      title: "Download started",
+      description: `Downloading ${movie?.title} in ${torrent.quality} (${torrent.size}).`,
     });
   };
 
@@ -163,10 +152,31 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
               <img src={movie.posterUrl} alt={movie.title} className="w-full h-auto" />
             </div>
             <div className="mt-6 space-y-4">
-              <Button className="w-full gap-2" size="lg" onClick={handleDownload}>
-                <Download className="h-4 w-4" />
-                Download Torrent
-              </Button>
+              {movie.torrents.length > 0 ? (
+                movie.torrents.map((torrent) => (
+                  <Button
+                    key={torrent.url}
+                    variant="default"
+                    size="lg"
+                    className="flex items-center gap-2 w-full transition-transform duration-200 hover:scale-105 hover:shadow-md"
+                    onClick={() => handleTorrentDownload(torrent)}
+                    asChild
+                    aria-label={`Download ${movie.title} in ${torrent.quality}`}
+                  >
+                    <a href={torrent.url} target="_blank" rel="noopener noreferrer">
+                      <Download className="h-4 w-4" />
+                      <span className="flex items-center gap-2">
+                        <span className="px-2 py-1 bg-secondary rounded-full text-xs">
+                          {torrent.quality}
+                        </span>
+                        ({torrent.size}, Seeds: {torrent.seeds})
+                      </span>
+                    </a>
+                  </Button>
+                ))
+              ) : (
+                <p className="text-muted-foreground">No download options available.</p>
+              )}
               <Button variant="outline" className="w-full gap-2" onClick={handleSubtitlesDownload}>
                 <Subtitles className="h-4 w-4" />
                 Download Subtitles
@@ -179,23 +189,29 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
           </div>
           <div className="md:col-span-2 space-y-6">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold">{movie.title}</h1>
+              <h1 className="text-3xl md:text-4xl font-bold">
+                <span className="bg-background/80 rounded-md px-3 py-1">{movie.title}</span>
+              </h1>
               <div className="flex flex-wrap items-center gap-2 mt-2 text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  <span>{movie.year}</span>
+                  <span className="bg-background/80 rounded-full px-2 py-1 text-sm">
+                    {movie.year}
+                  </span>
                 </div>
                 <span>•</span>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  <span>
+                  <span className="bg-background/80 rounded-full px-2 py-1 text-sm">
                     {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
                   </span>
                 </div>
                 <span>•</span>
                 <div className="flex items-center gap-1">
                   <Globe className="h-4 w-4" />
-                  <span>{movie.language}</span>
+                  <span className="bg-background/80 rounded-full px-2 py-1 text-sm">
+                    {movie.language.join(", ")}
+                  </span>
                 </div>
               </div>
             </div>
@@ -229,7 +245,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                 </div>
                 <div className="bg-card border border-border rounded-lg p-4 text-center">
                   <div className="text-sm text-muted-foreground mb-1">Rotten Tomatoes</div>
-                  <div className="text-2xl font-bold">{movie.ratings.rottenTomatoes}%</div>
+                  <div className="text-2xl font-bold">{movie.ratings.rottenTomatoes}</div>
                 </div>
                 <div className="bg-card border border-border rounded-lg p-4 text-center">
                   <div className="text-sm text-muted-foreground mb-1">Metacritic</div>
@@ -284,12 +300,6 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
           />
         </div>
       </div>
-      {unlockedAchievement && (
-        <AchievementToast
-          achievement={unlockedAchievement}
-          onComplete={() => setUnlockedAchievement(null)}
-        />
-      )}
     </div>
   );
 }
