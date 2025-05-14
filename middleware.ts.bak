@@ -1,0 +1,28 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createSupabaseServerClient } from './lib/supabase';
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  const supabase = createSupabaseServerClient();
+
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  console.log('Middleware triggered for path:', req.nextUrl.pathname);
+  console.log('Session:', !!session, 'Session error:', error);
+  console.log('Cookies:', req.cookies.getAll().map(c => ({ name: c.name, value: c.value })));
+
+  if (!session && req.nextUrl.pathname.startsWith('/members')) {
+    console.log('Redirecting to /login: No session');
+    return NextResponse.redirect(new URL('/login', req.url));
+  }
+
+  console.log('Allowing access to:', req.nextUrl.pathname);
+  return res;
+}
+
+export const config = {
+  matcher: ['/members/:path*'],
+};

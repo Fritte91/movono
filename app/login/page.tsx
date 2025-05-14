@@ -1,8 +1,10 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,27 +12,69 @@ import { Film, LogIn, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
+import { supabaseClient } from "@/lib/supabase"
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+})
+
+type LoginFormData = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  })
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      setIsLoading(true)
+      console.log('Attempting login with:', data.email)
 
-    toast({
-      title: "Welcome back!",
-      description: "You've successfully logged in.",
-    })
+      const { data: authData, error } = await supabaseClient.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      })
 
-    setTimeout(() => {
-      router.push("/members")
-    }, 1000)
+      console.log('Auth response:', { authData, error })
+
+      if (error) {
+        console.error('Login error:', error)
+        throw error
+      }
+
+      if (!authData?.session) {
+        console.error('No session after successful login')
+        throw new Error('No session created after login')
+      }
+
+      console.log('Login successful, session:', authData.session)
+
+      toast({
+        title: "Welcome back!",
+        description: "You've successfully logged in.",
+      })
+
+      // Force a hard navigation to ensure the session is properly set
+      window.location.href = '/members'
+    } catch (error: any) {
+      console.error('Login error caught:', error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to log in. Please try again.",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -47,10 +91,19 @@ export default function LoginPage() {
           </div>
 
           <div className="bg-card border border-border rounded-lg p-6 shadow-lg">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@example.com" required className="search-input" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  className="search-input"
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -60,7 +113,16 @@ export default function LoginPage() {
                     Forgot password?
                   </Link>
                 </div>
-                <Input id="password" type="password" placeholder="••••••••" required className="search-input" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="search-input"
+                  {...register("password")}
+                />
+                {errors.password && (
+                  <p className="text-sm text-red-500">{errors.password.message}</p>
+                )}
               </div>
 
               <Button type="submit" className="w-full mt-6" disabled={isLoading}>

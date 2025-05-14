@@ -1,8 +1,10 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,27 +12,61 @@ import { Film, ArrowRight, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
+import { supabaseClient } from "@/lib/supabase"
+
+const signupSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+})
+
+type SignupFormData = z.infer<typeof signupSchema>
 
 export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+  })
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+  const onSubmit = async (data: SignupFormData) => {
+    try {
+      setIsLoading(true)
+      const { error } = await supabaseClient.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            username: data.username,
+          },
+        },
+      })
 
-    toast({
-      title: "Account created!",
-      description: "Welcome to Movono. You're now being redirected to the members area.",
-    })
+      if (error) {
+        throw error
+      }
 
-    setTimeout(() => {
-      router.push("/members")
-    }, 1000)
+      toast({
+        title: "Account created!",
+        description: "Please check your email to verify your account.",
+      })
+
+      router.push("/login")
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to create account. Please try again.",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -47,21 +83,47 @@ export default function SignupPage() {
           </div>
 
           <div className="bg-card border border-border rounded-lg p-6 shadow-lg">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
-                <Input id="username" placeholder="filmfan123" required className="search-input" />
+                <Input
+                  id="username"
+                  placeholder="filmfan123"
+                  className="search-input"
+                  {...register("username")}
+                />
+                {errors.username && (
+                  <p className="text-sm text-red-500">{errors.username.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="you@example.com" required className="search-input" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  className="search-input"
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input id="password" type="password" placeholder="••••••••" required className="search-input" />
-                <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="search-input"
+                  {...register("password")}
+                />
+                {errors.password && (
+                  <p className="text-sm text-red-500">{errors.password.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
               </div>
 
               <Button type="submit" className="w-full mt-6" disabled={isLoading}>
