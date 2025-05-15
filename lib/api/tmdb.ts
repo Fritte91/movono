@@ -7,7 +7,7 @@ export interface Movie {
     genre?: string[];
   }
   
-  const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY || "765fa06e8b22a3e52c775f28eceef740"; // Fallback for testing
+  const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY || "765fa06e8b22a3e52c775f28eceef740";
   const TMDB_BASE_URL = "https://api.themoviedb.org/3";
   const TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500";
   
@@ -44,29 +44,23 @@ export interface Movie {
   };
   
   export async function getUpcomingMovies(): Promise<Movie[]> {
-    console.log("TMDB_API_KEY:", TMDB_API_KEY);
-    if (!TMDB_API_KEY) {
-      console.error("TMDB_API_KEY is not set");
-      return [];
-    }
+    if (!TMDB_API_KEY) return [];
   
     try {
       const url = `${TMDB_BASE_URL}/movie/upcoming?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
-      console.log("Fetching TMDB URL:", url);
-      const response = await fetch(url, { cache: "no-store" });
+      const response = await fetch(url, { 
+        cache: "no-store",
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      });
   
-      if (!response.ok) {
-        const text = await response.text();
-        console.error(`TMDB API error: ${response.status} ${response.statusText}`);
-        console.error("TMDB Response:", text);
-        throw new Error(`TMDB API error: ${response.status}`);
-      }
+      if (!response.ok) return [];
   
       const data = await response.json();
-      console.log("TMDB Response:", data);
       const tmdbMovies: TMDBMovie[] = data.results || [];
   
-      // Limit to 10 movies to avoid rate limits
       const movies = await Promise.all(
         tmdbMovies.slice(0, 10).map(async (movie) => {
           const imdbId = await getMovieImdbId(movie.id);
@@ -88,51 +82,52 @@ export interface Movie {
       );
   
       return movies;
-    } catch (error) {
-      console.error("Error fetching upcoming movies:", error);
+    } catch {
       return [];
     }
   }
   
   export async function getMovieImdbId(tmdbId: number): Promise<string | null> {
+    if (!TMDB_API_KEY) return null;
+  
     try {
       const url = `${TMDB_BASE_URL}/movie/${tmdbId}?api_key=${TMDB_API_KEY}&language=en-US`;
-      console.log("Fetching TMDB Movie URL:", url);
-      const response = await fetch(url, { cache: "no-store" });
+      const response = await fetch(url, { 
+        cache: "no-store",
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      });
   
-      if (!response.ok) {
-        const text = await response.text();
-        console.error(`TMDB movie details error: ${response.status} ${response.statusText}`);
-        console.error("TMDB Movie Response:", text);
-        throw new Error(`TMDB API error: ${response.status}`);
-      }
+      if (!response.ok) return null;
   
       const data: TMDBMovie = await response.json();
       return data.imdb_id || null;
-    } catch (error) {
-      console.error(`Error fetching IMDb ID for TMDB ID ${tmdbId}:`, error);
+    } catch {
       return null;
     }
   }
   
   export async function getTmdbIdFromImdbId(imdbId: string): Promise<number | null> {
+    if (!TMDB_API_KEY) return null;
+  
     try {
       const url = `${TMDB_BASE_URL}/find/${imdbId}?api_key=${TMDB_API_KEY}&language=en-US&external_source=imdb_id`;
-      console.log("Fetching TMDB Find URL:", url);
-      const response = await fetch(url, { cache: "no-store" });
+      const response = await fetch(url, { 
+        cache: "no-store",
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      });
   
-      if (!response.ok) {
-        const text = await response.text();
-        console.error(`TMDB find error: ${response.status} ${response.statusText}`);
-        console.error("TMDB Find Response:", text);
-        throw new Error(`TMDB API error: ${response.status}`);
-      }
+      if (!response.ok) return null;
   
       const data = await response.json();
       const movieResults = data.movie_results || [];
       return movieResults.length > 0 ? movieResults[0].id : null;
-    } catch (error) {
-      console.error(`Error fetching TMDB ID for IMDb ID ${imdbId}:`, error);
+    } catch {
       return null;
     }
   }

@@ -1,63 +1,53 @@
 // app/members/page.tsx
-"use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { ChevronDown, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MovieSlider } from "@/components/movie-slider";
-import { NewsPreview } from "@/components/news-preview";
-import { HeroSection } from "@/components/hero-section"; // New import
-import { genres } from "@/lib/movie-data";
-import { upcomingMovies } from "@/lib/upcoming-movies-data";
-import { getMoviesByTitle } from "@/lib/api/getMoviesByTitle";
-import {
-  popularTitles,
-  topRatedTitles,
-  newReleasesTitles,
-  allMovieTitles,
-  upcomingTitles,
-} from "@/lib/movie-data";
+import { fetchMoviesFromSupabase } from '@/lib/supabase-movies';
+import { MovieSlider as MovieSliderBase } from '@/components/movie-slider';
+import { NewsPreview } from '@/components/news-preview';
+import { HeroSection } from '@/components/hero-section';
+import { genres } from '@/lib/movie-data';
+import Link from 'next/link';
+import { ChevronDown, Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { getUpcomingMovies } from '@/lib/api/tmdb';
+import { GenreSlidersLazy } from '@/components/genre-sliders-lazy';
 
-export default function MembersPage() {
-  const [popularMovies, setPopularMovies] = useState<Movie[]>([]);
-  const [topRated, setTopRated] = useState<Movie[]>([]);
-  const [newReleases, setNewReleases] = useState<Movie[]>([]);
-  const [allMovies, setAllMovies] = useState<Movie[]>([]);
-  const [upcoming, setUpcoming] = useState<Movie[]>([]);
+function mapMovies(movies: any[] = [], label = '') {
+  const mapped = movies.map((movie) => ({
+    ...movie,
+    posterUrl: movie.poster_url || movie.posterUrl || '/placeholder.svg',
+  }));
+  console.log(`Slider [${label}] received ${mapped.length} movies`);
+  return mapped;
+}
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        console.log("upcomingTitles: ", upcomingTitles);
-        const [popular, top, newR, all, upcoming] = await Promise.all([
-          getMoviesByTitle(popularTitles),
-          getMoviesByTitle(topRatedTitles),
-          getMoviesByTitle(newReleasesTitles),
-          getMoviesByTitle(allMovieTitles),
-          getMoviesByTitle(upcomingTitles),
-        ]);
+const genreList = [
+  "Action", "Adventure", "Sci-Fi", "Drama", "Crime", "Thriller",
+  "Comedy", "Horror", "Animation", "Family", "Romance", "Mystery", "Fantasy", "Documentary", "Biography"
+];
 
-        setPopularMovies(popular);
-        setTopRated(top);
-        setNewReleases(newR);
-        setAllMovies(all);
-        setUpcoming(upcoming);
-      } catch (error) {
-        console.error("Error fetching movie data:", error);
-      }
-    };
+export default async function MembersPage() {
+  // Updated filters for New Releases and Top Rated
+  const [popularMoviesRaw, topRatedRaw, newReleasesRaw, ...genreSlidersRaw] = await Promise.all([
+    fetchMoviesFromSupabase({ sortBy: 'ratings->>imdb', minYear: 1990, maxYear: 2025, minImdb: 6, limit: 20 }),
+    fetchMoviesFromSupabase({ sortBy: 'ratings->>imdb', minYear: 2000, maxYear: 2025, minImdb: 8, limit: 20 }),
+    fetchMoviesFromSupabase({ sortBy: 'year', minYear: 2025, maxYear: 2025, minImdb: 6, limit: 20 }),
+    ...genreList.map((genre) =>
+      fetchMoviesFromSupabase({ genre, minYear: 1990, maxYear: 2025, minImdb: 6, sortBy: 'year', limit: 20 })
+    ),
+  ]);
 
-    fetchData();
-  }, []);
+  const popularMovies = mapMovies(popularMoviesRaw, 'Popular');
+  const topRated = mapMovies(topRatedRaw, 'Top Rated');
+  const newReleases = mapMovies(newReleasesRaw, 'New Releases');
+  const genreSliders = genreSlidersRaw.map((arr, idx) => mapMovies(arr, genreList[idx]));
+
+  // Coming Soon slider: fetch from TMDB
+  const upcoming = mapMovies(await getUpcomingMovies(), 'Coming Soon');
 
   return (
     <div className="pb-20">
-      {/* Hero section replaced with HeroSection component */}
       <HeroSection />
-
-      {/* Sliders and menus */}
       <div className="container">
         <section className="py-8">
           <div className="flex items-center justify-between mb-8">
@@ -80,7 +70,6 @@ export default function MembersPage() {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-
               <Link href="/members/search">
                 <Button variant="outline" className="gap-2">
                   <Search className="h-4 w-4" />
@@ -89,25 +78,13 @@ export default function MembersPage() {
               </Link>
             </div>
           </div>
-
-          {/* Movie sliders */}
           <div className="space-y-12">
-            <MovieSlider title="Popular Movies" movies={popularMovies} />
-            <MovieSlider title="Coming Soon" movies={upcoming} />
-            <MovieSlider title="New Releases" movies={newReleases} />
+            <MovieSliderBase title="Popular Movies" movies={popularMovies} />
+            <MovieSliderBase title="Coming Soon" movies={upcoming} />
+            <MovieSliderBase title="New Releases" movies={newReleases} />
             <NewsPreview />
-            <MovieSlider title="Top Rated" movies={topRated} />
-
-            {/* Genre-based filtering */}
-            {["Action", "Adventure", "Sci-Fi", "Drama", "Crime", "Thriller"].map((genre) => (
-              <MovieSlider
-                key={genre}
-                title={genre}
-                movies={allMovies.filter((movie) => movie?.Genre?.includes(genre)).slice(0, 10)}
-              />
-            ))}
-
-            <MovieSlider title="Your Favorites" movies={popularMovies.slice(0, 5)} />
+            <MovieSliderBase title="Top Rated" movies={topRated} />
+            <GenreSlidersLazy genreList={genreList} genreSliders={genreSliders} />
           </div>
         </section>
       </div>

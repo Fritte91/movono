@@ -11,6 +11,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { TrailerPlayer } from "@/components/trailer-player";
 import { MovieComments } from "@/components/movie-comments";
+import { YtsDownloads } from "@/components/yts-downloads";
+import { SimilarMovies } from "@/components/similar-movies";
 
 interface DetailedMovie {
   id: string;
@@ -51,7 +53,6 @@ interface DetailedMovie {
 
 export default function MoviePage({ params }: { params: Promise<{ id: string }> }) {
   const [movie, setMovie] = useState<DetailedMovie | null>(null);
-  const [similarMovies, setSimilarMovies] = useState<Movie[]>([]);
   const [userRating, setUserRating] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,12 +71,6 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
         if (fetchedMovie) {
           setMovie(fetchedMovie);
           setUserRating(fetchedMovie.userRating || 0);
-          const similar = await getSimilarMovies(resolvedParams.id);
-          console.log("Similar movies fetched:", similar.map((m) => ({ title: m.title, genres: m.genre })));
-          setSimilarMovies(similar || []);
-          if (similar.length === 0) {
-            console.warn(`No similar movies found for ID ${resolvedParams.id}`);
-          }
         } else {
           setError("Movie not found");
           router.push("/members");
@@ -156,31 +151,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
               <img src={movie.posterUrl} alt={movie.title} className="w-full h-auto" />
             </div>
             <div className="mt-6 space-y-4">
-              {movie.torrents && movie.torrents.length > 0 ? (
-                movie.torrents.map((torrent) => (
-                  <Button
-                    key={torrent.url}
-                    variant="default"
-                    size="lg"
-                    className="flex items-center gap-2 w-full transition-transform duration-200 hover:scale-105 hover:shadow-md"
-                    onClick={() => handleTorrentDownload(torrent)}
-                    asChild
-                    aria-label={`Download ${movie.title} in ${torrent.quality}`}
-                  >
-                    <a href={torrent.url} target="_blank" rel="noopener noreferrer">
-                      <Download className="h-4 w-4" />
-                      <span className="flex items-center gap-2">
-                        <span className="px-2 py-1 bg-secondary rounded-full text-xs">
-                          {torrent.quality}
-                        </span>
-                        ({torrent.size}, Seeds: {torrent.seeds})
-                      </span>
-                    </a>
-                  </Button>
-                ))
-              ) : (
-                <p className="text-muted-foreground">No download options available.</p>
-              )}
+              <YtsDownloads imdbId={movie.id} title={movie.title} />
               <Button variant="outline" className="w-full gap-2" onClick={handleSubtitlesDownload}>
                 <Subtitles className="h-4 w-4" />
                 Download Subtitles
@@ -296,14 +267,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
             </div>
           </div>
         </div>
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold mb-6">Similar Movies</h2>
-          {similarMovies.length > 0 ? (
-            <MovieSlider title="" movies={similarMovies} />
-          ) : (
-            <p className="text-muted-foreground">No similar movies found.</p>
-          )}
-        </div>
+        <SimilarMovies movieId={movie.id} />
         <div className="mt-16">
           <MovieComments
             movieId={movie.id}

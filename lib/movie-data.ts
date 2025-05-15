@@ -1,5 +1,5 @@
 import { getMoviesByTitle } from './api/getMoviesByTitle';
-import { getMovieByIdFromAPI } from './api/getMovieById';
+import { getMovieById } from './api/getMovieById';
 import { getSimilarMovies } from './api/getSimilarMovies';
 
 export interface Movie {
@@ -167,14 +167,10 @@ export const getNewReleasesMovies = async () => {
   return await getMovies(newReleasesTitles);
 };
 
-// Add this function
-export const getMovieById = async (id: string) => {
-  return await getMovieByIdFromAPI(id);
-};
-
 // Example for getting upcoming movies
 export const getUpcomingMovies = async () => {
   return await getMovies(upcomingTitles);
 };
 
 export { getSimilarMovies };
+export { getMovieById };
