@@ -133,7 +133,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   return (
     <div className="pb-20">
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background z-10"></div>
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background z-10 pointer-events-none"></div>
         <div className="h-[50vh] w-full overflow-hidden">
           <TrailerPlayer
             youtubeTrailerUrl={movie.youtubeTrailerUrl}

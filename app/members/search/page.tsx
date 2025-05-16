@@ -4,33 +4,94 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { searchMovies, genres, languages, years, type Movie } from "@/lib/movie-data"
+import { genres } from "@/lib/movie-data"
 import { Search, Filter, X } from "lucide-react"
 import Link from "next/link"
+import { getMoviesFromSupabase } from "@/lib/api/getMoviesFromSupabase"
+
+const currentYear = new Date().getFullYear();
+const years = Array.from({ length: 60 }, (_, i) => currentYear - i); // Last 60 years
+
+const languages = [
+  "en", "fr", "es", "de", "it", "sv", "no", "da", "fi", "ru", "zh", "ja", "ko", "ar", "pt", "tr"
+];
+
+const languageMap: Record<string, string> = {
+  en: "English",
+  fr: "French",
+  es: "Spanish",
+  de: "German",
+  it: "Italian",
+  sv: "Swedish",
+  no: "Norwegian",
+  da: "Danish",
+  fi: "Finnish",
+  ru: "Russian",
+  zh: "Chinese",
+  ja: "Japanese",
+  ko: "Korean",
+  ar: "Arabic",
+  pt: "Portuguese",
+  tr: "Turkish",
+  // Add more as needed
+};
 
 export default function SearchPage() {
   const [query, setQuery] = useState("")
   const [year, setYear] = useState<string>("")
   const [genre, setGenre] = useState<string>("")
   const [language, setLanguage] = useState<string>("")
-  const [results, setResults] = useState<Movie[]>([])
+  const [results, setResults] = useState<any[]>([])
   const [isFiltersVisible, setIsFiltersVisible] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSearch = () => {
-    const filters: {
-      year?: number
-      genre?: string
-      language?: string
-    } = {}
+  const handleSearch = async () => {
+    setIsLoading(true)
+    let filters: any = {
+      sortBy: "ratings->>imdb",
+      limit: 100,
+    }
+    if (query) filters.title = query
+    if (year && year !== "any") filters.year = Number(year)
+    if (genre && genre !== "any") filters.genre = genre
+    if (language && language !== "any") filters.language = language
 
-    if (year) filters.year = Number.parseInt(year)
-    if (genre) filters.genre = genre
-    if (language) filters.language = language
+    // Build Supabase query
+    const supabaseFilters: any = {
+      sortBy: "ratings->>imdb",
+      limit: 100,
+    }
+    let customFilter = (q: any) => q
+    if (filters.title) {
+      customFilter = (q: any) => q.ilike("title", `%${filters.title}%`)
+    }
+    if (filters.year) {
+      customFilter = ((prev) => (q: any) => prev(q).eq("year", filters.year))(customFilter)
+    }
+    if (filters.genre) {
+      customFilter = ((prev) => (q: any) => prev(q).contains("genre", [filters.genre]))(customFilter)
+    }
+    if (filters.language) {
+      customFilter = ((prev) => (q: any) => prev(q).contains("language", [filters.language]))(customFilter)
+    }
 
-    const searchResults = searchMovies(query, filters)
-    setResults(searchResults)
+    // Use a custom version of getMoviesFromSupabase that allows customFilter
+    const { createClient } = await import("@supabase/supabase-js")
+    const supabaseUrl = 'https://ylvgvgkyawmialfcudex.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsdmd2Z2t5YXdtaWFsZmN1ZGV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDM0OTEsImV4cCI6MjA2MjY3OTQ5MX0.7EMJcWM1e1LfwY1cbTmlyPYCwmEtZwZwg1fe6YGxo_0'
+    const supabase = createClient(supabaseUrl, supabaseAnonKey)
+    let queryBuilder = supabase.from("movies").select("*")
+    queryBuilder = customFilter(queryBuilder)
+    queryBuilder = queryBuilder.order("ratings->>imdb", { ascending: false }).limit(100)
+    const { data, error } = await queryBuilder
+    const mapped = (data || []).map((movie: any) => ({
+      ...movie,
+      posterUrl: movie.poster_url || movie.posterUrl || "/placeholder.svg",
+    }))
+    setResults(mapped)
     setHasSearched(true)
+    setIsLoading(false)
   }
 
   const clearFilters = () => {
@@ -58,7 +119,9 @@ export default function SearchPage() {
               <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
 
-            <Button onClick={handleSearch}>Search</Button>
+            <Button onClick={handleSearch} disabled={isLoading}>
+              {isLoading ? "Searching..." : "Search"}
+            </Button>
 
             <Button variant="outline" onClick={() => setIsFiltersVisible(!isFiltersVisible)} className="gap-2">
               <Filter className="h-4 w-4" />
@@ -83,7 +146,8 @@ export default function SearchPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="Any year" />
                     </SelectTrigger>
-                    <SelectContent>
+                    
+                    <SelectContent className="max-h-64 overflow-y-auto">
                       <SelectItem value="any">Any year</SelectItem>
                       {years.map((y) => (
                         <SelectItem key={y} value={y.toString()}>
@@ -100,7 +164,7 @@ export default function SearchPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="Any genre" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-64 overflow-y-auto">
                       <SelectItem value="any">Any genre</SelectItem>
                       {genres.map((g) => (
                         <SelectItem key={g} value={g}>
@@ -117,11 +181,11 @@ export default function SearchPage() {
                     <SelectTrigger>
                       <SelectValue placeholder="Any language" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-64 overflow-y-auto">
                       <SelectItem value="any">Any language</SelectItem>
                       {languages.map((l) => (
                         <SelectItem key={l} value={l}>
-                          {l}
+                          {languageMap[l] || l}
                         </SelectItem>
                       ))}
                     </SelectContent>

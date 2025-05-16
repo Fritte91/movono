@@ -9,10 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getMovies, genres, allMovieTitles } from "@/lib/movie-data";
+import { genres } from "@/lib/movie-data";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { getMoviesFromSupabase } from "@/lib/api/getMoviesFromSupabase";
 
 interface Movie {
   id: string;
@@ -50,7 +51,6 @@ export default function MoviesPage() {
   const [selectedGenre, setSelectedGenre] = useState<string>(genreParam || "All");
   const [currentPage, setCurrentPage] = useState(1);
   const [allMovies, setAllMovies] = useState<Movie[]>([]);
-  const [filteredMovies, setFilteredMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const moviesPerPage = 50;
@@ -60,37 +60,33 @@ export default function MoviesPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const movies = await getMovies(allMovieTitles);
-        console.log("Movies from getMovies:", movies); // Debug
-        setAllMovies(movies || []);
-        setFilteredMovies(movies || []);
+        const movies = await getMoviesFromSupabase({
+          genre: selectedGenre !== "All" ? selectedGenre : undefined,
+          sortBy: "ratings->>imdb",
+          limit: 500,
+        });
+        // Map poster_url to posterUrl for compatibility
+        const mapped = (movies || []).map((movie) => ({
+          ...movie,
+          posterUrl: movie.poster_url || movie.posterUrl || "/placeholder.svg",
+        }));
+        setAllMovies(mapped);
+        setCurrentPage(1);
       } catch (err) {
         setError("Failed to load movies");
-        console.error("Fetch error:", err);
-        setFilteredMovies([]);
+        setAllMovies([]);
       } finally {
         setIsLoading(false);
       }
     }
     fetchMovies();
-  }, []);
+  }, [selectedGenre]);
 
-  useEffect(() => {
-    let movies = allMovies;
-    if (selectedGenre !== "All") {
-      movies = allMovies.filter((movie) =>
-        movie?.genre && Array.isArray(movie.genre) && movie.genre.includes(selectedGenre)
-      );
-    }
-    setFilteredMovies(movies || []);
-    setCurrentPage(1); // Reset to first page when genre changes
-  }, [selectedGenre, allMovies]);
-
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredMovies.length / moviesPerPage) || 1;
+  // Pagination
+  const totalPages = Math.ceil(allMovies.length / moviesPerPage) || 1;
   const startIndex = (currentPage - 1) * moviesPerPage;
   const endIndex = startIndex + moviesPerPage;
-  const currentMovies = filteredMovies.slice(startIndex, endIndex);
+  const currentMovies = allMovies.slice(startIndex, endIndex);
 
   const handlePreviousPage = () => {
     if (currentPage > 1) {
@@ -151,7 +147,7 @@ export default function MoviesPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {currentMovies.map((movie) => (
-              <Link key={movie.id} href={`/movies/${movie.id}`} className="group">
+              <Link key={movie.id} href={`/members/movie/${movie.id}`} className="group">
                 <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
                   <div className="aspect-[2/3] relative">
                     <img
@@ -167,7 +163,7 @@ export default function MoviesPage() {
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
                       <div className="text-sm font-medium truncate">{movie.title}</div>
                       <div className="text-xs text-gray-400">{movie.year}</div>
-                      <div className="text-xs text-gray-400">{movie.ratings.imdb || "N/A"}/10</div>
+                      <div className="text-xs text-gray-400">{movie.ratings?.imdb || "N/A"}/10</div>
                     </div>
                   </div>
                 </div>
@@ -177,7 +173,7 @@ export default function MoviesPage() {
 
           <div className="flex items-center justify-between mt-8">
             <div className="text-sm text-muted-foreground">
-              Showing {startIndex + 1}-{Math.min(endIndex, filteredMovies.length)} of {filteredMovies.length} movies
+              Showing {startIndex + 1}-{Math.min(endIndex, allMovies.length)} of {allMovies.length} movies
             </div>
             <div className="flex items-center gap-2">
               <Button
