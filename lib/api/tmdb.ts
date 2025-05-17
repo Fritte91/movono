@@ -142,6 +142,59 @@ export interface Movie {
 
 import { DetailedMovie } from "@/app/members/movie/[id]/page";
 
+interface Video {
+  site: string;
+  type: string;
+  official: boolean;
+  key: string;
+}
+
+interface Person {
+  name: string;
+  job?: string;
+}
+
+interface Country {
+  iso_3166_1: string;
+  release_dates: Array<{ release_date: string }>;
+}
+
+interface Genre {
+  name: string;
+}
+
+interface Language {
+  english_name: string;
+}
+
+interface ProductionCompany {
+  name: string;
+}
+
+interface TMDBMovieResponse {
+  id: number;
+  title: string;
+  poster_path: string | null;
+  videos?: {
+    results: Video[];
+  };
+  credits?: {
+    crew: Person[];
+    cast: Person[];
+  };
+  release_dates?: {
+    results: Country[];
+  };
+  release_date?: string;
+  runtime: number;
+  spoken_languages?: Language[];
+  production_countries?: { name: string }[];
+  genres?: Genre[];
+  overview: string;
+  production_companies?: ProductionCompany[];
+  vote_average?: number;
+}
+
 export async function getMovieFromTmdbById(tmdbId: number): Promise<DetailedMovie | null> {
   if (!TMDB_API_KEY) {
     console.error("TMDB API key is not configured.");
@@ -149,39 +202,39 @@ export async function getMovieFromTmdbById(tmdbId: number): Promise<DetailedMovi
   }
 
   try {
-    const response = await fetch(`${TMDB_BASE_URL}/movie/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=videos,credits,release_dates}`);
-
+    const response = await fetch(`${TMDB_BASE_URL}/movie/${tmdbId}?api_key=${TMDB_API_KEY}&append_to_response=videos,credits,release_dates`);
+    
     if (!response.ok) {
       console.error(`Error fetching movie from TMDB: ${response.statusText}`);
       return null;
     }
-
-    const data = await response.json();
+    
+    const data: TMDBMovieResponse = await response.json();
 
     // Find the official trailer (or the first available video if no official trailer)
     const trailer = data.videos?.results?.find(
-      (video: any) => video.site === 'YouTube' && video.type === 'Trailer' && video.official
-    ) || data.videos?.results?.find((video: any) => video.site === 'YouTube' && video.type === 'Trailer');
+      (video) => video.site === 'YouTube' && video.type === 'Trailer' && video.official
+    ) || data.videos?.results?.find((video) => video.site === 'YouTube' && video.type === 'Trailer');
 
     // Find the director and cast (limit to first 5 cast members)
-    const director = data.credits?.crew?.find((person: any) => person.job === 'Director')?.name;
-    const cast = data.credits?.cast?.slice(0, 5).map((person: any) => person.name);
+    const director = data.credits?.crew?.find((person) => person.job === 'Director')?.name;
+    const cast = data.credits?.cast?.slice(0, 5).map((person) => person.name);
 
     // Find the US release date to extract year
-    const releaseDateUS = data.release_dates?.results?.find((country: any) => country.iso_3166_1 === 'US');
+    const releaseDateUS = data.release_dates?.results?.find((country) => country.iso_3166_1 === 'US');
     const year = releaseDateUS?.release_dates?.[0]?.release_date ? new Date(releaseDateUS.release_dates[0].release_date).getFullYear() : (data.release_date ? new Date(data.release_date).getFullYear() : undefined);
 
     // Map TMDB data to DetailedMovie format
     const detailedMovie: DetailedMovie = {
       id: `tmdb-${data.id}`, // Prefix with tmdb- to differentiate
       title: data.title,
-      posterUrl: data.poster_path ? `${TMDB_IMAGE_BASE_URL}${data.poster_path}` : '/placeholder.svg',
+      posterUrl: data.poster_path ? `https://image.tmdb.org/t/p/original${data.poster_path}` : '/placeholder.svg',
       youtubeTrailerUrl: trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : null,
       year: year,
       runtime: data.runtime,
-      language: data.spoken_languages?.map((lang: any) => lang.english_name), // Using English names for languages
-      country: data.production_countries?.map((country: any) => country.name), // Using production countries
-      genre: data.genres?.map((genre: any) => genre.name),
+      language: data.spoken_languages?.map((lang) => lang.english_name), // Using English names for languages
+      country: data.production_countries?.map((country) => country.name), // Using production countries
+      genre: data.genres?.map((genre) => genre.name),
       plot: data.overview,
       director: director,
       writer: undefined, // TMDB API doesn't easily provide writers in main movie details, would need separate calls
@@ -192,7 +245,7 @@ export async function getMovieFromTmdbById(tmdbId: number): Promise<DetailedMovi
       type: "movie", // Assuming all are movies for now
       dvd: undefined, // Not available
       boxOffice: undefined, // Not directly available in this endpoint
-      production: data.production_companies?.map((company: any) => company.name).join(", "),
+      production: data.production_companies?.map((company) => company.name).join(", "),
       website: undefined, // Not directly available
       ratings: {
         imdb: data.vote_average ? parseFloat(data.vote_average.toFixed(1)) : undefined,
