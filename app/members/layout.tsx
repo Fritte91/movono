@@ -2,6 +2,9 @@ import type React from "react"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { Toaster } from "@/components/ui/toaster"
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/next"
+
 
 export default function MembersLayout({
   children,
@@ -12,6 +15,8 @@ export default function MembersLayout({
     <div className="relative min-h-screen flex flex-col">
       <SiteHeader />
       <main className="flex-1">{children}</main>
+      <Analytics />
+      <SpeedInsights />
       <SiteFooter />
       <Toaster />
     </div>
