@@ -8,7 +8,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { CollectionDialog } from "@/components/collection-dialog";
-import { getMovies, type Movie } from "@/lib/movie-data";
+import { createSupabaseServerClient } from "@/lib/supabase";
+import type { Movie } from "@/lib/movie-data";
 import { use } from "react";
 
 export interface Collection {
@@ -36,64 +37,38 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   useEffect(() => {
     async function loadCollection() {
       try {
-        // Fetch movies using the API
-        const allMovies = await getMovies([
-          "Inception",
-          "The Matrix",
-          "Fight Club",
-          "The Shawshank Redemption",
-          "The Godfather",
-          "Dune: Part Two",
-          "Oppenheimer",
-          "The Dark Knight",
-          "Pulp Fiction",
-        ]);
+        const supabase = createSupabaseServerClient();
+        const { data, error } = await supabase
+          .from('collections')
+          .select('*, collection_movies(movies(*))')
+          .eq('id', id) // Fetch collection by ID
+          .single(); // Expecting a single result
 
-        // Define collections dynamically
-        const sampleCollections: Collection[] = [
-          {
-            id: "1",
-            name: "Halloween Marathon",
-            description: "My favorite horror movies for Halloween night",
-            coverImage: "/placeholder.svg?height=400&width=600",
-            isPublic: true,
-            createdAt: new Date(2023, 9, 15),
-            updatedAt: new Date(2023, 9, 15),
-            userId: "user1",
-            movies: allMovies.filter((_, index) => [2, 5, 8].includes(index)),
-          },
-          {
-            id: "2",
-            name: "Best of the 90s",
-            description: "Classic films from the 1990s that defined a generation",
-            coverImage: "/placeholder.svg?height=400&width=600",
-            isPublic: true,
-            createdAt: new Date(2023, 8, 10),
-            updatedAt: new Date(2023, 8, 20),
-            userId: "user1",
-            movies: allMovies
-              .filter((movie) => movie.year >= 1990 && movie.year < 2000)
-              .slice(0, 5),
-          },
-          {
-            id: "3",
-            name: "Sci-Fi Favorites",
-            description: "Mind-bending science fiction films that make you think",
-            coverImage: "/placeholder.svg?height=400&width=600",
-            isPublic: false,
-            createdAt: new Date(2023, 7, 5),
-            updatedAt: new Date(2023, 7, 5),
-            userId: "user1",
-            movies: allMovies.filter((movie) => movie.genre.includes("Sci-Fi")).slice(0, 4),
-          },
-        ];
-
-        // Find the collection by ID
-        const fetchedCollection = sampleCollections.find((c) => c.id === id);
-        if (fetchedCollection) {
-          setCollection(fetchedCollection);
-        } else {
+        if (error || !data) {
+          console.error('Error loading collection:', error);
           router.push("/members/profile?tab=collections");
+        } else {
+          // Map the fetched data to the expected Collection type
+          const fetchedCollection: Collection = {
+            id: data.id,
+            name: data.name,
+            description: data.description,
+            coverImage: data.cover_image || '/placeholder.svg',
+            isPublic: data.is_public,
+            createdAt: new Date(data.created_at),
+            updatedAt: new Date(data.updated_at),
+            userId: data.user_id,
+            // Extract movie data from the nested collection_movies relationship
+            movies: data.collection_movies?.map((cm: any) => ({
+              id: cm.movies.id,
+              title: cm.movies.title,
+              posterUrl: cm.movies.poster_url,
+              year: cm.movies.year,
+              imdbId: cm.movies.imdb_id,
+              genre: cm.movies.genre,
+            })) || [],
+          };
+          setCollection(fetchedCollection);
         }
       } catch (error) {
         console.error("Failed to load collection:", error);

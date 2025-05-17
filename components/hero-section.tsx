@@ -49,7 +49,7 @@ export function HeroSection() {
           </div>
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <Link href={`/members/movie/${selectedMovie.imdbId}`}>
-              <Button size="lg" className="group">
+              <Button size="lg" className="group w-full">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="mr-2 h-5 w-5 transition-transform group-hover:scale-125"
@@ -66,7 +66,7 @@ export function HeroSection() {
               </Button>
             </Link>
             <Link href={`/members/movie/${selectedMovie.imdbId}`}>
-              <Button size="lg" variant="outline">View Details</Button>
+              <Button size="lg" variant="outline" className="w-full">View Details</Button>
             </Link>
           </div>
         </div>

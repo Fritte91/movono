@@ -52,10 +52,10 @@ export default async function MembersPage() {
         <section className="py-8">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl font-bold">Welcome to Movono</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2">
+                  <Button variant="outline" className="gap-2 w-full sm:w-auto">
                     Browse Genres
                     <ChevronDown className="h-4 w-4" />
                   </Button>
@@ -71,7 +71,7 @@ export default async function MembersPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <Link href="/members/search">
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2 w-full sm:w-auto">
                   <Search className="h-4 w-4" />
                   Advanced Search
                 </Button>

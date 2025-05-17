@@ -94,3 +94,17 @@ export async function syncSession(accessToken: string, refreshToken: string, coo
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+const fetchCollections = async () => {
+  const { data, error } = await supabase
+    .from('collections')
+    .select('*')
+    .eq('user_id', currentUser.id)
+
+  if (error) {
+    console.error('Error fetching collections:', error)
+    return []
+  }
+
+  return data
+}

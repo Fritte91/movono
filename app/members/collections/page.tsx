@@ -5,7 +5,8 @@ import { CollectionsGrid } from "@/components/collections-grid";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
-import { getMovies, type Movie } from "@/lib/movie-data";
+import { createSupabaseServerClient } from "@/lib/supabase";
+import type { Movie } from "@/lib/movie-data";
 
 export interface Collection {
   id: string;
@@ -26,62 +27,40 @@ export default function PublicCollectionsPage() {
   useEffect(() => {
     async function loadCollections() {
       try {
-        // Fetch movies using the API
-        const allMovies = await getMovies([
-          "Inception",
-          "The Matrix",
-          "Fight Club",
-          "The Shawshank Redemption",
-          "The Godfather",
-          "Dune: Part Two",
-          "Oppenheimer",
-          "The Dark Knight",
-          "Pulp Fiction",
-        ]);
+        const supabase = createSupabaseServerClient();
+        const { data, error } = await supabase
+          .from('collections')
+          .select('*, collection_movies(movies(*))')
+          .eq('is_public', true)
+          .order('created_at', { ascending: false });
 
-        // Define collections dynamically
-        const sampleCollections: Collection[] = [
-          {
-            id: "1",
-            name: "Halloween Marathon",
-            description: "My favorite horror movies for Halloween night",
-            coverImage: "/placeholder.svg?height=400&width=600",
-            isPublic: true,
-            createdAt: new Date(2023, 9, 15),
-            updatedAt: new Date(2023, 9, 15),
-            userId: "user1",
-            movies: allMovies.filter((_, index) => [2, 5, 8].includes(index)),
-          },
-          {
-            id: "2",
-            name: "Best of the 90s",
-            description: "Classic films from the 1990s that defined a generation",
-            coverImage: "/placeholder.svg?height=400&width=600",
-            isPublic: true,
-            createdAt: new Date(2023, 8, 10),
-            updatedAt: new Date(2023, 8, 20),
-            userId: "user1",
-            movies: allMovies
-              .filter((movie) => movie.year >= 1990 && movie.year < 2000)
-              .slice(0, 5),
-          },
-          {
-            id: "3",
-            name: "Sci-Fi Favorites",
-            description: "Mind-bending science fiction films that make you think",
-            coverImage: "/placeholder.svg?height=400&width=600",
-            isPublic: false,
-            createdAt: new Date(2023, 7, 5),
-            updatedAt: new Date(2023, 7, 5),
-            userId: "user1",
-            movies: allMovies.filter((movie) => movie.genre.includes("Sci-Fi")).slice(0, 4),
-          },
-        ];
-
-        // Set public collections
-        setCollections(sampleCollections.filter((collection) => collection.isPublic));
+        if (error) {
+          console.error('Error loading public collections:', error);
+          setCollections([]);
+        } else {
+          const fetchedCollections: Collection[] = data.map((item: any) => ({
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            coverImage: item.cover_image || '/placeholder.svg',
+            isPublic: item.is_public,
+            createdAt: new Date(item.created_at),
+            updatedAt: new Date(item.updated_at),
+            userId: item.user_id,
+            movies: item.collection_movies?.map((cm: any) => ({
+              id: cm.movies.id,
+              title: cm.movies.title,
+              posterUrl: cm.movies.poster_url,
+              year: cm.movies.year,
+              imdbId: cm.movies.imdb_id,
+              genre: cm.movies.genre,
+            })),
+          }));
+          setCollections(fetchedCollections);
+        }
       } catch (error) {
         console.error("Failed to load collections:", error);
+        setCollections([]);
       } finally {
         setIsLoading(false);
       }

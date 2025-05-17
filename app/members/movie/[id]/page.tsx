@@ -15,7 +15,7 @@ import { YtsDownloads } from "@/components/yts-downloads";
 import { SimilarMovies } from "@/components/similar-movies";
 import { createSupabaseServerClient } from "@/lib/supabase";
 
-interface DetailedMovie {
+export interface DetailedMovie {
   id: string;
   title: string;
   posterUrl: string;
