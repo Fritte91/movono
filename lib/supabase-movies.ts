@@ -1,5 +1,7 @@
-import { cookies } from 'next/headers';
+import { createClient } from '@supabase/supabase-js';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { Movie } from './movie-data';
 
 interface FetchMoviesOptions {
   genre?: string;
@@ -9,8 +11,70 @@ interface FetchMoviesOptions {
   sortBy?: string;
   limit?: number;
   language?: string;
+  offset?: number;
 }
 
+// Client-side version
+export async function fetchMoviesFromSupabaseClient(
+  type: "popular" | "top_rated" | "new_releases" | "coming_soon" | "genre",
+  options: {
+    genre?: string;
+    offset?: number;
+  } = {}
+) {
+  const supabase = createClientComponentClient();
+  let query = supabase
+    .from("movies")
+    .select("*")
+    .range(options.offset || 0, (options.offset || 0) + 19);
+
+  switch (type) {
+    case "popular":
+      query = query
+        .gte("year", 1990)
+        .lte("year", 2025)
+        .gte("ratings->>imdb", 6)
+        .order("ratings->>imdb", { ascending: false });
+      break;
+    case "top_rated":
+      query = query
+        .gte("year", 2000)
+        .lte("year", 2025)
+        .gte("ratings->>imdb", 8)
+        .order("ratings->>imdb", { ascending: false });
+      break;
+    case "new_releases":
+      query = query
+        .eq("year", 2024)
+        .gte("ratings->>imdb", 6)
+        .order("year", { ascending: false });
+      break;
+    case "genre":
+      if (options.genre) {
+        query = query
+          .overlaps("genre", [options.genre])
+          .gte("year", 1990)
+          .lte("year", 2025)
+          .gte("ratings->>imdb", 6)
+          .order("year", { ascending: false });
+      }
+      break;
+  }
+
+  const { data: movies, error } = await query;
+
+  if (error) {
+    console.error("Error fetching movies:", error);
+    return [];
+  }
+
+  return movies.map((movie: any) => ({
+    ...movie,
+    posterUrl: movie.poster_url || movie.posterUrl || '/placeholder.svg',
+  }));
+}
+
+// Server-side version (keep the existing implementation)
 export async function fetchMoviesFromSupabase({
   genre,
   minYear = 2000,
@@ -19,16 +83,16 @@ export async function fetchMoviesFromSupabase({
   sortBy = 'ratings->>imdb',
   limit = 20,
   language = 'en',
-}: FetchMoviesOptions = {}) {
-  const cookieStore: any = await cookies();
+  offset = 0,
+}: FetchMoviesOptions = {}, cookieStore?: any) {
   const supabase = createServerClient(
-    'https://ylvgvgkyawmialfcudex.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsdmd2Z2t5YXdtaWFsZmN1ZGV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDM0OTEsImV4cCI6MjA2MjY3OTQ5MX0.7EMJcWM1e1LfwY1cbTmlyPYCwmEtZwZwg1fe6YGxo_0',
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get: (name: string) => cookieStore.get(name)?.value,
-        set: () => {},
-        remove: () => {},
+        get(name: string) {
+          return cookieStore?.get(name)?.value;
+        },
       },
     }
   );
@@ -39,11 +103,11 @@ export async function fetchMoviesFromSupabase({
     .eq('original_language', language)
     .gte('year', minYear)
     .lte('year', maxYear)
-    .gte('ratings->>imdb', minImdb);
+    .gte('ratings->>imdb', minImdb)
+    .range(offset, offset + limit - 1);
 
   if (genre) query = query.contains('genre', [genre]);
   if (sortBy) query = query.order(sortBy, { ascending: false });
-  if (limit) query = query.limit(limit);
 
   const { data, error } = await query;
   if (error) throw error;

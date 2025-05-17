@@ -1,7 +1,6 @@
 // app/members/page.tsx
 
 import { fetchMoviesFromSupabase } from '@/lib/supabase-movies';
-import { MovieSlider as MovieSliderBase } from '@/components/movie-slider';
 import { NewsPreview } from '@/components/news-preview';
 import { HeroSection } from '@/components/hero-section';
 import { genres } from '@/lib/movie-data';
@@ -10,40 +9,87 @@ import { ChevronDown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { getUpcomingMovies } from '@/lib/api/tmdb';
-import { GenreSlidersLazy } from '@/components/genre-sliders-lazy';
+import { MovieSlidersClient } from '@/components/movie-sliders-client';
+import { Suspense } from "react";
+import { Movie } from "@/lib/movie-data";
 
-function mapMovies(movies: any[] = [], label = '') {
-  const mapped = movies.map((movie) => ({
-    ...movie,
-    posterUrl: movie.poster_url || movie.posterUrl || '/placeholder.svg',
+function mapTMDBMoviesToMovie(tmdbMovies: any[]): Movie[] {
+  return tmdbMovies.map(movie => ({
+    id: movie.id.toString(),
+    title: movie.title,
+    year: parseInt(movie.release_date?.split('-')[0] || '2025'),
+    genre: movie.genre_ids?.map((id: number) => {
+      // Map TMDB genre IDs to our genre names
+      const genreMap: Record<number, string> = {
+        28: "Action",
+        12: "Adventure",
+        16: "Animation",
+        35: "Comedy",
+        80: "Crime",
+        99: "Documentary",
+        18: "Drama",
+        10751: "Family",
+        14: "Fantasy",
+        36: "History",
+        27: "Horror",
+        10402: "Music",
+        9648: "Mystery",
+        10749: "Romance",
+        878: "Sci-Fi",
+        53: "Thriller",
+        10752: "War",
+        37: "Western"
+      };
+      return genreMap[id] || "Drama";
+    }) || ["Drama"],
+    posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.svg'
   }));
-  console.log(`Slider [${label}] received ${mapped.length} movies`);
-  return mapped;
 }
 
-const genreList = [
-  "Action", "Adventure", "Sci-Fi", "Drama", "Crime", "Thriller",
-  "Comedy", "Horror", "Animation", "Family", "Romance", "Mystery", "Fantasy", "Documentary", "Biography"
-];
-
 export default async function MembersPage() {
-  // Updated filters for New Releases and Top Rated
-  const [popularMoviesRaw, topRatedRaw, newReleasesRaw, ...genreSlidersRaw] = await Promise.all([
-    fetchMoviesFromSupabase({ sortBy: 'ratings->>imdb', minYear: 1990, maxYear: 2025, minImdb: 6, limit: 20 }),
-    fetchMoviesFromSupabase({ sortBy: 'ratings->>imdb', minYear: 2000, maxYear: 2025, minImdb: 8, limit: 20 }),
-    fetchMoviesFromSupabase({ sortBy: 'year', minYear: 2025, maxYear: 2025, minImdb: 6, limit: 20 }),
-    ...genreList.map((genre) =>
-      fetchMoviesFromSupabase({ genre, minYear: 1990, maxYear: 2025, minImdb: 6, sortBy: 'year', limit: 20 })
-    ),
+  // Fetch initial data for all sliders
+  const [popularMovies, topRatedMovies, newReleases, comingSoonTMDB] = await Promise.all([
+    fetchMoviesFromSupabase({ 
+      sortBy: 'ratings->>imdb', 
+      minYear: 1990, 
+      maxYear: 2025, 
+      minImdb: 6, 
+      limit: 20 
+    }),
+    fetchMoviesFromSupabase({ 
+      sortBy: 'ratings->>imdb', 
+      minYear: 2000, 
+      maxYear: 2025, 
+      minImdb: 8, 
+      limit: 20 
+    }),
+    fetchMoviesFromSupabase({ 
+      sortBy: 'year', 
+      minYear: 2025, 
+      maxYear: 2025, 
+      minImdb: 6, 
+      limit: 20 
+    }),
+    getUpcomingMovies()
   ]);
 
-  const popularMovies = mapMovies(popularMoviesRaw, 'Popular');
-  const topRated = mapMovies(topRatedRaw, 'Top Rated');
-  const newReleases = mapMovies(newReleasesRaw, 'New Releases');
-  const genreSliders = genreSlidersRaw.map((arr, idx) => mapMovies(arr, genreList[idx]));
+  const comingSoon = mapTMDBMoviesToMovie(comingSoonTMDB);
 
-  // Coming Soon slider: fetch from TMDB
-  const upcoming = mapMovies(await getUpcomingMovies(), 'Coming Soon');
+  // Fetch initial data for genre sliders
+  const genreMoviesPromises = genres.map(genre =>
+    fetchMoviesFromSupabase({ 
+      genre, 
+      minYear: 1990, 
+      maxYear: 2025, 
+      minImdb: 6, 
+      sortBy: 'year', 
+      limit: 20 
+    })
+  );
+  const genreMoviesResults = await Promise.all(genreMoviesPromises);
+  const genreMovies = Object.fromEntries(
+    genres.map((genre, index) => [genre, genreMoviesResults[index]])
+  );
 
   return (
     <div className="pb-20">
@@ -78,14 +124,18 @@ export default async function MembersPage() {
               </Link>
             </div>
           </div>
-          <div className="space-y-12">
-            <MovieSliderBase title="Popular Movies" movies={popularMovies} />
-            <MovieSliderBase title="Coming Soon" movies={upcoming} />
-            <MovieSliderBase title="New Releases" movies={newReleases} />
-            <NewsPreview />
-            <MovieSliderBase title="Top Rated" movies={topRated} />
-            <GenreSlidersLazy genreList={genreList} genreSliders={genreSliders} />
-          </div>
+          <Suspense fallback={<div>Loading movie sliders...</div>}>
+            <MovieSlidersClient
+              initialMovies={{
+                popular: popularMovies,
+                topRated: topRatedMovies,
+                newReleases: newReleases,
+                comingSoon: comingSoon,
+                genreMovies: genreMovies
+              }}
+            />
+          </Suspense>
+          <NewsPreview />
         </section>
       </div>
     </div>
