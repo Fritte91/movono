@@ -6,7 +6,13 @@ import { Calendar, ArrowLeft, Share2, Bookmark, Facebook, Twitter, Linkedin } fr
 import Link from "next/link"
 import { notFound } from "next/navigation"
 
-export default function ArticlePage({ params }: { params: { slug: string } }) {
+interface PageProps {
+  params: {
+    slug: string
+  }
+}
+
+export default function NewsArticlePage({ params }: PageProps) {
   const article = getArticleBySlug(params.slug)
 
   if (!article) {
