@@ -6,7 +6,7 @@ import { getMovieById, type Movie } from "@/lib/movie-data";
 import { RatingStars } from "@/components/rating-stars";
 import { Button } from "@/components/ui/button";
 import { MovieSlider } from "@/components/movie-slider";
-import { Clock, Calendar, Globe, Subtitles, Share2 } from "lucide-react";
+import { Clock, Calendar, Globe, Subtitles, Share2, Plus } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { TrailerPlayer } from "@/components/trailer-player";
@@ -14,6 +14,13 @@ import MovieCommentsClient from "@/components/MovieCommentsClient";
 import { YtsDownloads } from "@/components/yts-downloads";
 import { SimilarMovies } from "@/components/similar-movies";
 import { createSupabaseServerClient } from "@/lib/supabase";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { supabaseClient } from "@/lib/supabase";
 
 export interface DetailedMovie {
   id: string;
@@ -82,6 +89,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -107,6 +115,18 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
         // Fetch comments
         const fetchedComments = await fetchComments(resolvedParams.id);
         setComments(fetchedComments);
+
+        // Fetch user's collections
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        if (user) {
+          const { data: userCollections } = await supabaseClient
+            .from('collections')
+            .select('id, name')
+            .eq('user_id', user.id)
+            .order('name');
+          
+          setCollections(userCollections || []);
+        }
       } catch (err) {
         setError("Failed to load movie details");
         console.error("Fetch error:", err);
@@ -131,10 +151,17 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   };
 
   const handleSubtitlesDownload = () => {
-    toast({
-      title: "Subtitles download started",
-      description: "Your subtitle file is being prepared for download.",
-    });
+    if (!movie) return;
+
+    // Extract IMDb ID from movie.id (it might be in format 'tmdb-123' or 'tt123456')
+    const imdbId = movie.id.startsWith('tmdb-') 
+      ? movie.id.replace('tmdb-', 'tt') 
+      : movie.id.startsWith('tt') 
+        ? movie.id 
+        : `tt${movie.id}`;
+
+    // Open SubDL in a new tab
+    window.open(`https://subdl.com/search/${imdbId}`, '_blank');
   };
 
   const handleTorrentDownload = (torrent: DetailedMovie["torrents"][0]) => {
@@ -142,6 +169,33 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
       title: "Download started",
       description: `Downloading ${movie?.title} in ${torrent.quality} (${torrent.size}).`,
     });
+  };
+
+  const handleAddToCollection = async (collectionId: string) => {
+    if (!movie) return;
+
+    try {
+      const { error } = await supabaseClient
+        .from('collection_movies')
+        .insert({
+          collection_id: collectionId,
+          movie_id: movie.id,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Movie added to collection successfully",
+      });
+    } catch (error) {
+      console.error('Error adding movie to collection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add movie to collection",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading) {
@@ -188,6 +242,36 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                 <Subtitles className="h-4 w-4" />
                 Download Subtitles
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="w-full gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add to Collection
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {collections.length > 0 ? (
+                    collections.map((collection) => (
+                      <DropdownMenuItem
+                        key={collection.id}
+                        onClick={() => handleAddToCollection(collection.id)}
+                      >
+                        {collection.name}
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled>
+                      No collections found
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={() => router.push('/members/profile?tab=collections')}
+                    className="text-primary"
+                  >
+                    Create New Collection
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button variant="outline" className="w-full gap-2">
                 <Share2 className="h-4 w-4" />
                 Share

@@ -81,7 +81,12 @@ export default function ProfilePage() {
               .single()
 
             if (createError) {
-              console.error('Error creating profile:', createError)
+              console.error('Error creating profile:', createError.message)
+              toast({
+                title: "Error",
+                description: "Failed to create profile. Please try again.",
+                variant: "destructive",
+              })
               return
             }
 
@@ -94,7 +99,12 @@ export default function ProfilePage() {
               avatar_url: newProfile.avatar_url,
             })
           } else {
-            console.error('Error loading profile:', profileError)
+            console.error('Error loading profile:', profileError.message)
+            toast({
+              title: "Error",
+              description: "Failed to load profile. Please try again.",
+              variant: "destructive",
+            })
             return
           }
         } else {
@@ -108,17 +118,39 @@ export default function ProfilePage() {
           })
         }
 
-        // Load collections
+        // Load collections with movies count
         const { data: userCollections, error: collectionsError } = await supabaseClient
           .from('collections')
-          .select('*')
+          .select(`
+            *,
+            collection_movies (
+              movie_id
+            )
+          `)
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
 
         if (collectionsError) {
-          console.error('Error loading collections:', collectionsError)
+          console.error('Error loading collections:', collectionsError.message)
+          toast({
+            title: "Warning",
+            description: "Failed to load collections. Some features may be limited.",
+          })
         } else {
-          setCollections(userCollections || [])
+          // Transform the data to include movies array and proper date objects
+          const collectionsWithMovies = userCollections?.map(collection => ({
+            ...collection,
+            id: collection.id,
+            name: collection.name,
+            description: collection.description,
+            coverImage: collection.cover_image,
+            isPublic: collection.is_public,
+            createdAt: new Date(collection.created_at),
+            updatedAt: new Date(collection.updated_at),
+            userId: collection.user_id,
+            movies: collection.collection_movies || []
+          })) || []
+          setCollections(collectionsWithMovies)
         }
 
         // Load rated movies with error handling
@@ -129,7 +161,8 @@ export default function ProfilePage() {
               id,
               rating,
               created_at,
-              movies:movie_id (
+              movie_id,
+              movies (
                 id,
                 title,
                 poster_url,
@@ -141,11 +174,15 @@ export default function ProfilePage() {
             .limit(5)
 
           if (ratingsError) {
-            // If the table doesn't exist yet, just set empty array
             if (ratingsError.code === '42P01') { // Table doesn't exist
+              console.log('Ratings table not found, skipping...')
               setRatedMovies([])
             } else {
-              console.error('Error loading ratings:', ratingsError)
+              console.error('Error loading ratings:', ratingsError.message)
+              toast({
+                title: "Warning",
+                description: "Failed to load ratings. Some features may be limited.",
+              })
               setRatedMovies([])
             }
           } else {
@@ -163,7 +200,8 @@ export default function ProfilePage() {
             .select(`
               id,
               created_at,
-              movies:movie_id (
+              movie_id,
+              movies (
                 id,
                 title,
                 poster_url,
@@ -175,11 +213,15 @@ export default function ProfilePage() {
             .limit(3)
 
           if (downloadsError) {
-            // If the table doesn't exist yet, just set empty array
             if (downloadsError.code === '42P01') { // Table doesn't exist
+              console.log('Downloads table not found, skipping...')
               setDownloadedMovies([])
             } else {
-              console.error('Error loading downloads:', downloadsError)
+              console.error('Error loading downloads:', downloadsError.message)
+              toast({
+                title: "Warning",
+                description: "Failed to load downloads. Some features may be limited.",
+              })
               setDownloadedMovies([])
             }
           } else {
@@ -194,7 +236,7 @@ export default function ProfilePage() {
         console.error('Error:', error)
         toast({
           title: "Error",
-          description: "Failed to load profile data",
+          description: "Failed to load profile data. Please try again.",
           variant: "destructive",
         })
       } finally {

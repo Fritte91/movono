@@ -11,6 +11,7 @@ import { CollectionDialog } from "@/components/collection-dialog";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import type { Movie } from "@/lib/movie-data";
 import { use } from "react";
+import { supabaseClient } from "@/lib/supabase";
 
 export interface Collection {
   id: string;
@@ -40,45 +41,107 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         const supabase = createSupabaseServerClient();
         const { data, error } = await supabase
           .from('collections')
-          .select('*, collection_movies(movies(*))')
-          .eq('id', id) // Fetch collection by ID
-          .single(); // Expecting a single result
+          .select(`
+            *,
+            collection_movies (
+              movie_id,
+              movies (
+                id,
+                title,
+                poster_url,
+                year
+              )
+            )
+          `)
+          .eq('id', id)
+          .single();
 
-        if (error || !data) {
-          console.error('Error loading collection:', error);
+        if (error) {
+          console.error('Error loading collection:', error.message);
+          toast({
+            title: "Error",
+            description: "Failed to load collection. Please try again.",
+            variant: "destructive",
+          });
           router.push("/members/profile?tab=collections");
-        } else {
-          // Map the fetched data to the expected Collection type
-          const fetchedCollection: Collection = {
-            id: data.id,
-            name: data.name,
-            description: data.description,
-            coverImage: data.cover_image || '/placeholder.svg',
-            isPublic: data.is_public,
-            createdAt: new Date(data.created_at),
-            updatedAt: new Date(data.updated_at),
-            userId: data.user_id,
-            // Extract movie data from the nested collection_movies relationship
-            movies: data.collection_movies?.map((cm: any) => ({
-              id: cm.movies.id,
-              title: cm.movies.title,
-              posterUrl: cm.movies.poster_url,
-              year: cm.movies.year,
-              imdbId: cm.movies.imdb_id,
-              genre: cm.movies.genre,
-            })) || [],
-          };
-          setCollection(fetchedCollection);
+          return;
         }
+
+        if (!data) {
+          toast({
+            title: "Not Found",
+            description: "Collection not found.",
+            variant: "destructive",
+          });
+          router.push("/members/profile?tab=collections");
+          return;
+        }
+
+        // Map the fetched data to the expected Collection type
+        const fetchedCollection: Collection = {
+          id: data.id,
+          name: data.name,
+          description: data.description,
+          coverImage: data.cover_image || '/placeholder.svg',
+          isPublic: data.is_public,
+          createdAt: new Date(data.created_at),
+          updatedAt: new Date(data.updated_at),
+          userId: data.user_id,
+          // Extract movie data from the nested collection_movies relationship
+          movies: data.collection_movies?.map((cm: any) => ({
+            id: cm.movie_id,
+            title: cm.movies.title,
+            posterUrl: cm.movies.poster_url,
+            year: cm.movies.year
+          })) || [],
+        };
+        setCollection(fetchedCollection);
       } catch (error) {
         console.error("Failed to load collection:", error);
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred. Please try again.",
+          variant: "destructive",
+        });
         router.push("/members/profile?tab=collections");
       } finally {
         setIsLoading(false);
       }
     }
     loadCollection();
-  }, [id, router]);
+  }, [id, router, toast]);
+
+  const handleRemoveMovie = async (movieId: string) => {
+    if (!collection) return;
+
+    try {
+      const { error } = await supabaseClient
+        .from('collection_movies')
+        .delete()
+        .eq('collection_id', collection.id)
+        .eq('movie_id', movieId);
+
+      if (error) throw error;
+
+      // Update local state
+      setCollection({
+        ...collection,
+        movies: collection.movies.filter(m => m.id !== movieId)
+      });
+
+      toast({
+        title: "Success",
+        description: "Movie removed from collection",
+      });
+    } catch (error) {
+      console.error('Error removing movie:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove movie from collection",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleShare = () => {
     toast({
@@ -160,7 +223,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
       </div>
       <div className="mb-6 flex items-center justify-between">
         <h2 className="text-2xl font-bold">Movies in this Collection</h2>
-        <Button>
+        <Button onClick={() => router.push('/members')}>
           <Plus className="h-4 w-4 mr-2" />
           Add Movies
         </Button>
@@ -168,26 +231,50 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
       {collection.movies.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
           {collection.movies.map((movie) => (
-            <Link key={movie.id} href={`/members/movie/${movie.id}`} className="group">
-              <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
-                <div className="aspect-[2/3] relative">
-                  <img
-                    src={movie.posterUrl || "/placeholder.svg"}
-                    alt={movie.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
-                    <Button variant="secondary" size="sm">
-                      View Details
-                    </Button>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                    <div className="text-sm font-medium truncate">{movie.title}</div>
-                    <div className="text-xs text-gray-400">{movie.year}</div>
+            <div key={movie.id} className="group relative">
+              <Link href={`/members/movie/${movie.id}`} className="block">
+                <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
+                  <div className="aspect-[2/3] relative">
+                    <img
+                      src={movie.posterUrl || "/placeholder.svg"}
+                      alt={movie.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                      <Button variant="secondary" size="sm">
+                        View Details
+                      </Button>
+                    </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                      <div className="text-sm font-medium truncate">{movie.title}</div>
+                      <div className="text-xs text-gray-400">{movie.year}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={() => handleRemoveMovie(movie.id)}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-4 w-4"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </Button>
+            </div>
           ))}
         </div>
       ) : (
@@ -197,7 +284,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           <p className="text-muted-foreground max-w-md mx-auto mb-6">
             Start adding movies to your collection to keep track of your favorites.
           </p>
-          <Button>
+          <Button onClick={() => router.push('/members')}>
             <Plus className="h-4 w-4 mr-2" />
             Add Your First Movie
           </Button>
