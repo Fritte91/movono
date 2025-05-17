@@ -1,6 +1,7 @@
 import type React from "react"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
+import { Toaster } from "@/components/ui/toaster"
 
 export default function MembersLayout({
   children,
@@ -12,6 +13,7 @@ export default function MembersLayout({
       <SiteHeader />
       <main className="flex-1">{children}</main>
       <SiteFooter />
+      <Toaster />
     </div>
   )
 }

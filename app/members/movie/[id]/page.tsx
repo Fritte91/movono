@@ -1,18 +1,19 @@
-"use client";
+'use client';
 
 import { useState, useEffect } from "react";
 import React from "react";
-import { getMovieById, getSimilarMovies, type Movie } from "@/lib/movie-data";
+import { getMovieById, type Movie } from "@/lib/movie-data";
 import { RatingStars } from "@/components/rating-stars";
 import { Button } from "@/components/ui/button";
 import { MovieSlider } from "@/components/movie-slider";
-import { Clock, Calendar, Globe, Subtitles, Share2, Download } from "lucide-react";
+import { Clock, Calendar, Globe, Subtitles, Share2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { TrailerPlayer } from "@/components/trailer-player";
-import { MovieComments } from "@/components/movie-comments";
+import MovieCommentsClient from "@/components/MovieCommentsClient";
 import { YtsDownloads } from "@/components/yts-downloads";
 import { SimilarMovies } from "@/components/similar-movies";
+import { createSupabaseServerClient } from "@/lib/supabase";
 
 interface DetailedMovie {
   id: string;
@@ -51,11 +52,36 @@ interface DetailedMovie {
   }[];
 }
 
+interface Comment {
+  id: string;
+  movie_id: string;
+  user_id: string;
+  username: string;
+  content: string;
+  created_at: string;
+}
+
+async function fetchComments(movieId: string): Promise<Comment[]> {
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('comments')
+    .select('*')
+    .eq('movie_id', movieId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching comments:', error);
+    return [];
+  }
+  return data || [];
+}
+
 export default function MoviePage({ params }: { params: Promise<{ id: string }> }) {
   const [movie, setMovie] = useState<DetailedMovie | null>(null);
   const [userRating, setUserRating] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [comments, setComments] = useState<Comment[]>([]);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -67,6 +93,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
       setError(null);
 
       try {
+        // Fetch movie
         const fetchedMovie = await getMovieById(resolvedParams.id);
         if (fetchedMovie) {
           setMovie(fetchedMovie);
@@ -74,7 +101,12 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
         } else {
           setError("Movie not found");
           router.push("/members");
+          return;
         }
+
+        // Fetch comments
+        const fetchedComments = await fetchComments(resolvedParams.id);
+        setComments(fetchedComments);
       } catch (err) {
         setError("Failed to load movie details");
         console.error("Fetch error:", err);
@@ -133,7 +165,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   return (
     <div className="pb-20">
       <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background z-10 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background z-10 pointer-events-none"></div>
         <div className="h-[50vh] w-full overflow-hidden">
           <TrailerPlayer
             youtubeTrailerUrl={movie.youtubeTrailerUrl}
@@ -269,23 +301,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
         </div>
         <SimilarMovies movieId={movie.id} />
         <div className="mt-16">
-          <MovieComments
-            movieId={movie.id}
-            initialComments={[
-              {
-                id: "1",
-                user: { name: "Jane Smith", avatar: "/placeholder.svg?height=40&width=40" },
-                text: "This movie was absolutely amazing! The visual effects were stunning and the storyline kept me engaged throughout.",
-                date: new Date(Date.now() - 86400000 * 3),
-              },
-              {
-                id: "2",
-                user: { name: "Mike Johnson", avatar: "/placeholder.svg?height=40&width=40" },
-                text: "I thought the acting was superb, especially the lead character. Would definitely recommend!",
-                date: new Date(Date.now() - 86400000 * 7),
-              },
-            ]}
-          />
+          <MovieCommentsClient movieId={movie.id} initialComments={comments} />
         </div>
       </div>
     </div>

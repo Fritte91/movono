@@ -18,11 +18,21 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export function SiteHeader() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const router = useRouter()
 
   const handleLogout = () => {
     // Simulate logout
     router.push("/")
+  }
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/members/search?q=${encodeURIComponent(searchQuery.trim())}`)
+      setIsSearchOpen(false)
+      setSearchQuery("")
+    }
   }
 
   return (
@@ -96,16 +106,25 @@ export function SiteHeader() {
 
         <div className="flex items-center ml-auto gap-2">
           {isSearchOpen ? (
-            <div className="relative">
+            <form onSubmit={handleSearch} className="relative">
               <Input
                 type="search"
                 placeholder="Search movies..."
                 className="w-[200px] sm:w-[300px] search-input"
                 autoFocus
-                onBlur={() => setIsSearchOpen(false)}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onBlur={() => {
+                  // Only close if clicking outside the input
+                  setTimeout(() => {
+                    if (!document.activeElement?.classList.contains('search-input')) {
+                      setIsSearchOpen(false)
+                    }
+                  }, 200)
+                }}
               />
               <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            </div>
+            </form>
           ) : (
             <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)} className="hover:bg-primary/10">
               <Search className="h-5 w-5" />

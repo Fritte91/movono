@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -46,13 +46,23 @@ export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleSearch = async () => {
+  // Add this useEffect to handle URL query parameter
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search)
+    const q = searchParams.get('q')
+    if (q) {
+      setQuery(q)
+      handleSearchWithQuery(q)
+    }
+  }, [])
+
+  const handleSearchWithQuery = async (searchQuery: string) => {
     setIsLoading(true)
     let filters: any = {
       sortBy: "ratings->>imdb",
       limit: 100,
     }
-    if (query) filters.title = query
+    if (searchQuery) filters.title = searchQuery
     if (year && year !== "any") filters.year = Number(year)
     if (genre && genre !== "any") filters.genre = genre
     if (language && language !== "any") filters.language = language
@@ -92,6 +102,10 @@ export default function SearchPage() {
     setResults(mapped)
     setHasSearched(true)
     setIsLoading(false)
+  }
+
+  const handleSearch = async () => {
+    await handleSearchWithQuery(query)
   }
 
   const clearFilters = () => {

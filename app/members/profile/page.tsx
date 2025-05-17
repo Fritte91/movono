@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,10 +8,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useToast } from "@/components/ui/use-toast"
-import { popularMovies } from "@/lib/movie-data"
 import Link from "next/link"
 import { RatingStars } from "@/components/rating-stars"
 import { Plus } from "lucide-react"
+import { supabaseClient } from "@/lib/supabase"
+import { useRouter } from "next/navigation"
 
 // Import the new components and data
 import { CollectionsGrid } from "@/components/collections-grid"
@@ -23,19 +24,228 @@ import type { Collection } from "@/lib/collections-data"
 
 export default function ProfilePage() {
   const { toast } = useToast()
+  const router = useRouter()
   const [isEditing, setIsEditing] = useState(false)
-  const [collections, setCollections] = useState(getUserCollections("user1"))
+  const [collections, setCollections] = useState<Collection[]>([])
   const [achievements] = useState(getUserAchievements("user1"))
   const [isCollectionDialogOpen, setIsCollectionDialogOpen] = useState(false)
   const [editingCollection, setEditingCollection] = useState<Collection | undefined>(undefined)
+  const [userData, setUserData] = useState<{
+    username: string;
+    email: string;
+    bio: string;
+    country: string;
+    language: string;
+    avatar_url?: string;
+  } | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [ratedMovies, setRatedMovies] = useState<any[]>([])
+  const [downloadedMovies, setDownloadedMovies] = useState<any[]>([])
 
-  const handleSaveProfile = () => {
-    setIsEditing(false)
+  useEffect(() => {
+    async function loadUserData() {
+      try {
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+        
+        if (userError || !user) {
+          toast({
+            title: "Error",
+            description: "Please log in to view your profile",
+            variant: "destructive",
+          })
+          router.push("/login")
+          return
+        }
 
-    toast({
-      title: "Profile updated",
-      description: "Your profile has been updated successfully.",
-    })
+        // Get user profile data
+        const { data: profile, error: profileError } = await supabaseClient
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+
+        if (profileError) {
+          // If profile doesn't exist, create one
+          if (profileError.code === 'PGRST116') {
+            const { data: newProfile, error: createError } = await supabaseClient
+              .from('profiles')
+              .insert({
+                id: user.id,
+                username: user.user_metadata.username || user.email?.split('@')[0] || 'Anonymous',
+                bio: '',
+                country: '',
+                language: 'English',
+                avatar_url: user.user_metadata.avatar_url,
+              })
+              .select()
+              .single()
+
+            if (createError) {
+              console.error('Error creating profile:', createError)
+              return
+            }
+
+            setUserData({
+              username: newProfile.username,
+              email: user.email || '',
+              bio: newProfile.bio || '',
+              country: newProfile.country || '',
+              language: newProfile.language || 'English',
+              avatar_url: newProfile.avatar_url,
+            })
+          } else {
+            console.error('Error loading profile:', profileError)
+            return
+          }
+        } else {
+          setUserData({
+            username: profile.username,
+            email: user.email || '',
+            bio: profile.bio || '',
+            country: profile.country || '',
+            language: profile.language || 'English',
+            avatar_url: profile.avatar_url,
+          })
+        }
+
+        // Load collections
+        const { data: userCollections, error: collectionsError } = await supabaseClient
+          .from('collections')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+
+        if (collectionsError) {
+          console.error('Error loading collections:', collectionsError)
+        } else {
+          setCollections(userCollections || [])
+        }
+
+        // Load rated movies with error handling
+        try {
+          const { data: ratings, error: ratingsError } = await supabaseClient
+            .from('ratings')
+            .select(`
+              id,
+              rating,
+              created_at,
+              movies:movie_id (
+                id,
+                title,
+                poster_url,
+                year
+              )
+            `)
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(5)
+
+          if (ratingsError) {
+            // If the table doesn't exist yet, just set empty array
+            if (ratingsError.code === '42P01') { // Table doesn't exist
+              setRatedMovies([])
+            } else {
+              console.error('Error loading ratings:', ratingsError)
+              setRatedMovies([])
+            }
+          } else {
+            setRatedMovies(ratings || [])
+          }
+        } catch (error) {
+          console.error('Error in ratings query:', error)
+          setRatedMovies([])
+        }
+
+        // Load downloaded movies with error handling
+        try {
+          const { data: downloads, error: downloadsError } = await supabaseClient
+            .from('downloads')
+            .select(`
+              id,
+              created_at,
+              movies:movie_id (
+                id,
+                title,
+                poster_url,
+                year
+              )
+            `)
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .limit(3)
+
+          if (downloadsError) {
+            // If the table doesn't exist yet, just set empty array
+            if (downloadsError.code === '42P01') { // Table doesn't exist
+              setDownloadedMovies([])
+            } else {
+              console.error('Error loading downloads:', downloadsError)
+              setDownloadedMovies([])
+            }
+          } else {
+            setDownloadedMovies(downloads || [])
+          }
+        } catch (error) {
+          console.error('Error in downloads query:', error)
+          setDownloadedMovies([])
+        }
+
+      } catch (error) {
+        console.error('Error:', error)
+        toast({
+          title: "Error",
+          description: "Failed to load profile data",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadUserData()
+  }, [toast, router])
+
+  const handleSaveProfile = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+      
+      if (userError || !user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to update your profile",
+          variant: "destructive",
+        })
+        return
+      }
+
+      const { error: updateError } = await supabaseClient
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          username: userData?.username,
+          bio: userData?.bio,
+          country: userData?.country,
+          language: userData?.language,
+          updated_at: new Date().toISOString(),
+        })
+
+      if (updateError) {
+        throw updateError
+      }
+
+      setIsEditing(false)
+      toast({
+        title: "Success",
+        description: "Your profile has been updated successfully.",
+      })
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update profile",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleEditCollection = (collection: Collection) => {
@@ -43,31 +253,85 @@ export default function ProfilePage() {
     setIsCollectionDialogOpen(true)
   }
 
-  const handleDeleteCollection = (collection: Collection) => {
-    // In a real app, this would call an API
-    setCollections(collections.filter((c) => c.id !== collection.id))
+  const handleDeleteCollection = async (collection: Collection) => {
+    try {
+      const { error } = await supabaseClient
+        .from('collections')
+        .delete()
+        .eq('id', collection.id)
 
+      if (error) throw error
+
+    setCollections(collections.filter((c) => c.id !== collection.id))
     toast({
-      title: "Collection deleted",
+        title: "Success",
       description: `"${collection.name}" has been deleted.`,
     })
+    } catch (error) {
+      console.error('Error deleting collection:', error)
+      toast({
+        title: "Error",
+        description: "Failed to delete collection",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleToggleVisibility = (collection: Collection) => {
-    // In a real app, this would call an API
-    setCollections(collections.map((c) => (c.id === collection.id ? { ...c, isPublic: !c.isPublic } : c)))
+  const handleToggleVisibility = async (collection: Collection) => {
+    try {
+      const { error } = await supabaseClient
+        .from('collections')
+        .update({ is_public: !collection.isPublic })
+        .eq('id', collection.id)
+
+      if (error) throw error
+
+      setCollections(collections.map((c) => 
+        c.id === collection.id ? { ...c, isPublic: !c.isPublic } : c
+      ))
 
     toast({
-      title: collection.isPublic ? "Collection is now private" : "Collection is now public",
+        title: "Success",
       description: `"${collection.name}" visibility has been updated.`,
     })
+    } catch (error) {
+      console.error('Error updating collection visibility:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update collection visibility",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleSaveCollection = (collectionData: Partial<Collection>) => {
+  const handleSaveCollection = async (collectionData: Partial<Collection>) => {
+    try {
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+      
+      if (userError || !user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to manage collections",
+          variant: "destructive",
+        })
+        return
+      }
+
     if (editingCollection) {
       // Update existing collection
-      setCollections(
-        collections.map((c) =>
+        const { error } = await supabaseClient
+          .from('collections')
+          .update({
+            name: collectionData.name,
+            description: collectionData.description,
+            is_public: collectionData.isPublic,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', editingCollection.id)
+
+        if (error) throw error
+
+        setCollections(collections.map((c) =>
           c.id === editingCollection.id
             ? {
                 ...c,
@@ -76,37 +340,176 @@ export default function ProfilePage() {
                 isPublic: collectionData.isPublic !== undefined ? collectionData.isPublic : c.isPublic,
                 updatedAt: new Date(),
               }
-            : c,
-        ),
-      )
+            : c
+        ))
 
       toast({
-        title: "Collection updated",
+          title: "Success",
         description: `"${collectionData.name}" has been updated.`,
       })
     } else {
       // Create new collection
-      const newCollection: Collection = {
-        id: `new-${Date.now()}`,
+        const { data, error } = await supabaseClient
+          .from('collections')
+          .insert({
         name: collectionData.name || "New Collection",
         description: collectionData.description || "",
-        isPublic: collectionData.isPublic || false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        userId: "user1",
-        movies: [],
-        coverImage: "/placeholder.svg?height=400&width=600",
-      }
+            is_public: collectionData.isPublic || false,
+            user_id: user.id,
+            cover_image: "/placeholder.svg?height=400&width=600",
+          })
+          .select()
+          .single()
 
-      setCollections([newCollection, ...collections])
+        if (error) throw error
 
+        setCollections([data, ...collections])
       toast({
-        title: "Collection created",
-        description: `"${newCollection.name}" has been created.`,
+          title: "Success",
+          description: `"${data.name}" has been created.`,
       })
     }
 
     setEditingCollection(undefined)
+      setIsCollectionDialogOpen(false)
+    } catch (error) {
+      console.error('Error saving collection:', error)
+      toast({
+        title: "Error",
+        description: "Failed to save collection",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const renderRatingsTab = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>My Ratings</CardTitle>
+        <CardDescription>Movies you've rated</CardDescription>
+      </CardHeader>
+
+      <CardContent>
+        <div className="space-y-4">
+          {ratedMovies.length > 0 ? (
+            ratedMovies.map((rating) => (
+              <div
+                key={rating.id}
+                className="flex items-center gap-4 p-3 rounded-lg hover:bg-card/60 transition-colors"
+              >
+                <Link href={`/members/movie/${rating.movies.id}`} className="shrink-0">
+                  <img
+                    src={rating.movies.poster_url || "/placeholder.svg"}
+                    alt={rating.movies.title}
+                    className="w-12 h-16 object-cover rounded"
+                  />
+                </Link>
+
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={`/members/movie/${rating.movies.id}`}
+                    className="font-medium hover:text-primary transition-colors"
+                  >
+                    {rating.movies.title}
+                  </Link>
+                  <div className="text-sm text-muted-foreground">{rating.movies.year}</div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <RatingStars initialRating={rating.rating} readOnly />
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-4 text-muted-foreground">
+              No ratings yet
+            </div>
+          )}
+        </div>
+      </CardContent>
+
+      <CardFooter>
+        <Button variant="outline" className="w-full">
+          View All Ratings
+        </Button>
+      </CardFooter>
+    </Card>
+  )
+
+  const renderDownloadsTab = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Download History</CardTitle>
+        <CardDescription>Your recent downloads</CardDescription>
+      </CardHeader>
+
+      <CardContent>
+        <div className="space-y-4">
+          {downloadedMovies.length > 0 ? (
+            downloadedMovies.map((download) => (
+              <div
+                key={download.id}
+                className="flex items-center gap-4 p-3 rounded-lg hover:bg-card/60 transition-colors"
+              >
+                <Link href={`/members/movie/${download.movies.id}`} className="shrink-0">
+                  <img
+                    src={download.movies.poster_url || "/placeholder.svg"}
+                    alt={download.movies.title}
+                    className="w-12 h-16 object-cover rounded"
+                  />
+                </Link>
+
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={`/members/movie/${download.movies.id}`}
+                    className="font-medium hover:text-primary transition-colors"
+                  >
+                    {download.movies.title}
+                  </Link>
+                  <div className="text-sm text-muted-foreground">
+                    Downloaded on {new Date(download.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+
+                <Button variant="outline" size="sm">
+                  Download Again
+                </Button>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-4 text-muted-foreground">
+              No downloads yet
+            </div>
+          )}
+        </div>
+      </CardContent>
+
+      <CardFooter>
+        <Button variant="outline" className="w-full">
+          View All Downloads
+        </Button>
+      </CardFooter>
+    </Card>
+  )
+
+  if (isLoading) {
+    return (
+      <div className="container py-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="animate-pulse">Loading profile...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!userData) {
+    return (
+      <div className="container py-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-red-500">Failed to load profile data</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -114,13 +517,13 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <Avatar className="h-20 w-20 border-2 border-primary">
-            <AvatarImage src="/placeholder.svg?height=80&width=80" alt="User" />
-            <AvatarFallback>JD</AvatarFallback>
+            <AvatarImage src={userData.avatar_url || "/placeholder.svg?height=80&width=80"} alt={userData.username} />
+            <AvatarFallback>{userData.username.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
 
           <div>
-            <h1 className="text-3xl font-bold">John Doe</h1>
-            <p className="text-muted-foreground">Member since May 2023</p>
+            <h1 className="text-3xl font-bold">{userData.username}</h1>
+            <p className="text-muted-foreground">Member since {new Date().toLocaleDateString()}</p>
           </div>
         </div>
 
@@ -154,29 +557,54 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
-                    <Input id="username" defaultValue="johndoe" disabled={!isEditing} />
+                    <Input 
+                      id="username" 
+                      value={userData.username}
+                      onChange={(e) => setUserData({ ...userData, username: e.target.value })}
+                      disabled={!isEditing} 
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" defaultValue="john.doe@example.com" disabled={!isEditing} />
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      value={userData.email}
+                      disabled={true} 
+                    />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="bio">Bio</Label>
-                  <Input id="bio" defaultValue="Film enthusiast and collector" disabled={!isEditing} />
+                  <Input 
+                    id="bio" 
+                    value={userData.bio}
+                    onChange={(e) => setUserData({ ...userData, bio: e.target.value })}
+                    disabled={!isEditing} 
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="country">Country</Label>
-                    <Input id="country" defaultValue="United States" disabled={!isEditing} />
+                    <Input 
+                      id="country" 
+                      value={userData.country}
+                      onChange={(e) => setUserData({ ...userData, country: e.target.value })}
+                      disabled={!isEditing} 
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="language">Preferred Language</Label>
-                    <Input id="language" defaultValue="English" disabled={!isEditing} />
+                    <Input 
+                      id="language" 
+                      value={userData.language}
+                      onChange={(e) => setUserData({ ...userData, language: e.target.value })}
+                      disabled={!isEditing} 
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -255,101 +683,11 @@ export default function ProfilePage() {
           </TabsContent>
 
           <TabsContent value="ratings">
-            <Card>
-              <CardHeader>
-                <CardTitle>My Ratings</CardTitle>
-                <CardDescription>Movies you've rated</CardDescription>
-              </CardHeader>
-
-              <CardContent>
-                <div className="space-y-4">
-                  {popularMovies.slice(0, 5).map((movie) => (
-                    <div
-                      key={movie.id}
-                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-card/60 transition-colors"
-                    >
-                      <Link href={`/members/movie/${movie.id}`} className="shrink-0">
-                        <img
-                          src={movie.posterUrl || "/placeholder.svg"}
-                          alt={movie.title}
-                          className="w-12 h-16 object-cover rounded"
-                        />
-                      </Link>
-
-                      <div className="flex-1 min-w-0">
-                        <Link
-                          href={`/members/movie/${movie.id}`}
-                          className="font-medium hover:text-primary transition-colors"
-                        >
-                          {movie.title}
-                        </Link>
-                        <div className="text-sm text-muted-foreground">{movie.year}</div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <RatingStars initialRating={Math.floor(Math.random() * 5) + 1} readOnly />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-
-              <CardFooter>
-                <Button variant="outline" className="w-full">
-                  View All Ratings
-                </Button>
-              </CardFooter>
-            </Card>
+            {renderRatingsTab()}
           </TabsContent>
 
           <TabsContent value="downloads">
-            <Card>
-              <CardHeader>
-                <CardTitle>Download History</CardTitle>
-                <CardDescription>Your recent downloads</CardDescription>
-              </CardHeader>
-
-              <CardContent>
-                <div className="space-y-4">
-                  {popularMovies.slice(0, 3).map((movie) => (
-                    <div
-                      key={movie.id}
-                      className="flex items-center gap-4 p-3 rounded-lg hover:bg-card/60 transition-colors"
-                    >
-                      <Link href={`/members/movie/${movie.id}`} className="shrink-0">
-                        <img
-                          src={movie.posterUrl || "/placeholder.svg"}
-                          alt={movie.title}
-                          className="w-12 h-16 object-cover rounded"
-                        />
-                      </Link>
-
-                      <div className="flex-1 min-w-0">
-                        <Link
-                          href={`/members/movie/${movie.id}`}
-                          className="font-medium hover:text-primary transition-colors"
-                        >
-                          {movie.title}
-                        </Link>
-                        <div className="text-sm text-muted-foreground">
-                          Downloaded on {new Date().toLocaleDateString()}
-                        </div>
-                      </div>
-
-                      <Button variant="outline" size="sm">
-                        Download Again
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-
-              <CardFooter>
-                <Button variant="outline" className="w-full">
-                  View All Downloads
-                </Button>
-              </CardFooter>
-            </Card>
+            {renderDownloadsTab()}
           </TabsContent>
         </Tabs>
       </div>
