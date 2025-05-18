@@ -31,6 +31,9 @@ export function CollectionDialog({ open, onOpenChange, collection, onSave }: Col
   const [name, setName] = useState(collection?.name || "")
   const [description, setDescription] = useState(collection?.description || "")
   const [isPublic, setIsPublic] = useState(collection?.isPublic || false)
+  const [gradientColor1, setGradientColor1] = useState(collection?.gradientColor1 || "#1e3a8a") // Default deep blue
+  const [gradientColor2, setGradientColor2] = useState(collection?.gradientColor2 || "#065f46") // Default dark green
+  const [gradientAngle, setGradientAngle] = useState(collection?.gradientAngle || 180) // Default bottom
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -47,6 +50,9 @@ export function CollectionDialog({ open, onOpenChange, collection, onSave }: Col
       name,
       description,
       isPublic,
+      gradientColor1,
+      gradientColor2,
+      gradientAngle,
     })
 
     // Reset form
@@ -54,6 +60,9 @@ export function CollectionDialog({ open, onOpenChange, collection, onSave }: Col
       setName("")
       setDescription("")
       setIsPublic(false)
+      setGradientColor1("#1e3a8a")
+      setGradientColor2("#065f46")
+      setGradientAngle(180)
     }
 
     onOpenChange(false)
@@ -90,6 +99,45 @@ export function CollectionDialog({ open, onOpenChange, collection, onSave }: Col
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="min-h-[100px]"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gradient-colors">Gradient Colors</Label>
+            <div className="flex gap-4">
+              <div className="flex flex-col space-y-1">
+                <Label htmlFor="color1" className="text-xs">Color 1</Label>
+                <Input
+                  id="color1"
+                  type="color"
+                  value={gradientColor1}
+                  onChange={(e) => setGradientColor1(e.target.value)}
+                  className="w-16 h-10 p-1"
+                />
+              </div>
+              <div className="flex flex-col space-y-1">
+                <Label htmlFor="color2" className="text-xs">Color 2</Label>
+                <Input
+                  id="color2"
+                  type="color"
+                  value={gradientColor2}
+                  onChange={(e) => setGradientColor2(e.target.value)}
+                  className="w-16 h-10 p-1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="gradient-angle">Gradient Angle</Label>
+            <Input
+              id="gradient-angle"
+              type="number"
+              placeholder="e.g., 180"
+              value={gradientAngle}
+              onChange={(e) => setGradientAngle(parseInt(e.target.value))}
+              min={0}
+              max={360}
             />
           </div>
 

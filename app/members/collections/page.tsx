@@ -18,6 +18,9 @@ export interface Collection {
   updatedAt: Date;
   userId: string;
   movies: Movie[];
+  gradientColor1?: string;
+  gradientColor2?: string;
+  gradientAngle?: number;
 }
 
 export default function PublicCollectionsPage() {
@@ -55,6 +58,9 @@ export default function PublicCollectionsPage() {
               imdbId: cm.movies.imdb_id,
               genre: cm.movies.genre,
             })),
+            gradientColor1: item.gradient_color1,
+            gradientColor2: item.gradient_color2,
+            gradientAngle: item.gradient_angle,
           }));
           setCollections(fetchedCollections);
         }

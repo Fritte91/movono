@@ -68,11 +68,25 @@ interface Comment {
   created_at: string;
 }
 
+interface OMDbRating {
+  Source: string;
+  Value: string;
+}
+
+interface OMDbMovie {
+  Ratings: OMDbRating[];
+  Response: "True" | "False";
+  Error?: string;
+}
+
 async function fetchComments(movieId: string): Promise<Comment[]> {
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from('comments')
-    .select('*')
+    .select(`
+      *,
+      profiles ( avatar_url )
+    `)
     .eq('movie_id', movieId)
     .order('created_at', { ascending: false });
 
@@ -93,6 +107,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   const { toast } = useToast();
   const router = useRouter();
   const [isTrailerPlaying, setIsTrailerPlaying] = useState(false);
+  const [omdbRatings, setOmdbRatings] = useState<OMDbRating[]>([]);
 
   const resolvedParams = React.use(params);
 
@@ -127,6 +142,28 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
             .order('name');
           
           setCollections(userCollections || []);
+        }
+
+        // Fetch OMDb ratings if movie data is available and has an IMDb ID (part of the movie.id)
+        if (fetchedMovie && fetchedMovie.id) {
+          // Extract IMDb ID (assuming it's part of the movie.id or can be derived)
+          // You might need to adjust this logic based on how your movie.id is structured
+          const imdbIdMatch = fetchedMovie.id.match(/tt\d+/);
+          if (imdbIdMatch && imdbIdMatch[0]) {
+            const imdbId = imdbIdMatch[0];
+            try {
+              const omdbApiKey = 'e2253ed9'; // Hardcoded API key for testing
+              const omdbResponse = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${omdbApiKey}`);
+              const omdbData: OMDbMovie = await omdbResponse.json();
+              if (omdbData.Response === "True" && omdbData.Ratings) {
+                setOmdbRatings(omdbData.Ratings);
+              } else if (omdbData.Response === "False") {
+                console.error("Error fetching OMDb data:", omdbData.Error);
+              }
+            } catch (omdbError) {
+              console.error("Failed to fetch OMDb data:", omdbError);
+            }
+          }
         }
       } catch (err) {
         setError("Failed to load movie details");
@@ -165,7 +202,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     window.open(`https://subdl.com/search/${imdbId}`, '_blank');
   };
 
-  const handleTorrentDownload = (torrent: DetailedMovie["torrents"][0]) => {
+  const handleTorrentDownload = (torrent: { url: string; quality: string; size: string; seeds: number; peers: number; }) => {
     toast({
       title: "Download started",
       description: `Downloading ${movie?.title} in ${torrent.quality} (${torrent.size}).`,
@@ -361,14 +398,14 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                     <div className="text-sm text-muted-foreground mb-1">IMDb</div>
                     <div className="text-2xl font-bold">{movie.ratings.imdb.toFixed(1)}/10</div>
                   </div>
-                  <div className="bg-card border border-border rounded-lg p-4 text-center">
-                    <div className="text-sm text-muted-foreground mb-1">Rotten Tomatoes</div>
-                    <div className="text-2xl font-bold">{movie.ratings.rottenTomatoes}</div>
-                  </div>
-                  <div className="bg-card border border-border rounded-lg p-4 text-center">
-                    <div className="text-sm text-muted-foreground mb-1">Metacritic</div>
-                    <div className="text-2xl font-bold">{movie.ratings.metacritic}/100</div>
-                  </div>
+                  {omdbRatings
+                    .filter(rating => rating.Source === "Rotten Tomatoes" || rating.Source === "Metacritic")
+                    .map(rating => (
+                    <div key={rating.Source} className="bg-card border border-border rounded-lg p-4 text-center">
+                      <div className="text-sm text-muted-foreground mb-1">{rating.Source}</div>
+                      <div className="text-2xl font-bold">{rating.Value}</div>
+                    </div>
+                  ))}
                   <div className="bg-card border border-border rounded-lg p-4 text-center">
                     <div className="text-sm text-muted-foreground mb-1">Movono Members</div>
                     <div className="text-2xl font-bold">{(Math.random() * 2 + 3).toFixed(1)}/5</div>

@@ -3,6 +3,12 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function YtsDownloads({ imdbId, title }: { imdbId: string; title: string }) {
   const [torrents, setTorrents] = useState<any[]>([]);
@@ -40,28 +46,33 @@ export function YtsDownloads({ imdbId, title }: { imdbId: string; title: string 
   }
 
   return (
-    <div className="mt-6 space-y-4">
-      {torrents.map((torrent) => (
-        <Button
-          key={torrent.url}
-          variant="default"
-          size="lg"
-          className="flex items-center gap-2 w-full transition-transform duration-200 hover:scale-105 hover:shadow-md"
-          onClick={() => handleTorrentDownload(torrent)}
-          asChild
-          aria-label={`Download ${title} in ${torrent.quality}`}
-        >
-          <a href={torrent.url} target="_blank" rel="noopener noreferrer">
+    <div className="mt-6">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="default" className="w-full gap-2">
             <Download className="h-4 w-4" />
-            <span className="flex items-center gap-2">
-              <span className="px-2 py-1 bg-secondary rounded-full text-xs">
-                {torrent.quality}
-              </span>
-              ({torrent.size}, Seeds: {torrent.seeds})
-            </span>
-          </a>
-        </Button>
-      ))}
+            Download Torrent
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          {torrents.length > 0 ? (
+            torrents.map((torrent) => (
+              <DropdownMenuItem
+                key={torrent.url}
+                onClick={() => handleTorrentDownload(torrent)}
+                asChild
+              >
+                <a href={torrent.url} target="_blank" rel="noopener noreferrer" className="flex justify-between items-center w-full">
+                  <span>{torrent.quality} ({torrent.size})</span>
+                  <span className="text-xs text-muted-foreground">Seeds: {torrent.seeds}</span>
+                </a>
+              </DropdownMenuItem>
+            ))
+          ) : (
+            <DropdownMenuItem disabled>No torrents available</DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 } 

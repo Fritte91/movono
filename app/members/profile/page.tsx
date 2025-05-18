@@ -38,6 +38,7 @@ export default function ProfilePage() {
     language: string;
     avatar_url?: string;
   } | null>(null)
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(true)
   const [ratedMovies, setRatedMovies] = useState<any[]>([])
   const [downloadedMovies, setDownloadedMovies] = useState<any[]>([])
@@ -98,6 +99,7 @@ export default function ProfilePage() {
               language: newProfile.language || 'English',
               avatar_url: newProfile.avatar_url,
             })
+            setSelectedAvatarUrl(newProfile.avatar_url || "/placeholder.svg")
           } else {
             console.error('Error loading profile:', profileError.message)
             toast({
@@ -116,6 +118,7 @@ export default function ProfilePage() {
             language: profile.language || 'English',
             avatar_url: profile.avatar_url,
           })
+          setSelectedAvatarUrl(profile.avatar_url || "/placeholder.svg")
         }
 
         // Load collections with movies count
@@ -148,7 +151,10 @@ export default function ProfilePage() {
             createdAt: new Date(collection.created_at),
             updatedAt: new Date(collection.updated_at),
             userId: collection.user_id,
-            movies: collection.collection_movies || []
+            movies: collection.collection_movies || [],
+            gradientColor1: collection.gradient_color1,
+            gradientColor2: collection.gradient_color2,
+            gradientAngle: collection.gradient_angle,
           })) || []
           setCollections(collectionsWithMovies)
         }
@@ -268,6 +274,7 @@ export default function ProfilePage() {
           bio: userData?.bio,
           country: userData?.country,
           language: userData?.language,
+          avatar_url: selectedAvatarUrl,
           updated_at: new Date().toISOString(),
         })
 
@@ -367,6 +374,9 @@ export default function ProfilePage() {
             name: collectionData.name,
             description: collectionData.description,
             is_public: collectionData.isPublic,
+            gradient_color1: collectionData.gradientColor1,
+            gradient_color2: collectionData.gradientColor2,
+            gradient_angle: collectionData.gradientAngle,
             updated_at: new Date().toISOString(),
           })
           .eq('id', editingCollection.id)
@@ -399,13 +409,16 @@ export default function ProfilePage() {
             is_public: collectionData.isPublic || false,
             user_id: user.id,
             cover_image: "/placeholder.svg?height=400&width=600",
+            gradient_color1: collectionData.gradientColor1 || "#1e3a8a",
+            gradient_color2: collectionData.gradientColor2 || "#065f46",
+            gradient_angle: collectionData.gradientAngle || 180,
           })
           .select()
           .single()
 
         if (error) throw error
 
-        setCollections([data, ...collections])
+        setCollections([{ ...data, movies: [], createdAt: new Date(data.created_at), updatedAt: new Date(data.updated_at) }, ...collections])
       toast({
           title: "Success",
           description: `"${data.name}" has been created.`,
@@ -559,7 +572,7 @@ export default function ProfilePage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
           <Avatar className="h-20 w-20 border-2 border-primary">
-            <AvatarImage src={userData.avatar_url || "/placeholder.svg?height=80&width=80"} alt={userData.username} />
+            <AvatarImage src={selectedAvatarUrl || "/placeholder.svg?height=80&width=80"} alt={userData.username} />
             <AvatarFallback>{userData.username.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
 
@@ -596,6 +609,28 @@ export default function ProfilePage() {
               </CardHeader>
 
               <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Choose Avatar</Label>
+                  <div className="flex gap-4">
+                    {[
+                      "https://api.dicebear.com/7.x/lorelei/svg?seed=avatar1",
+                      "https://api.dicebear.com/7.x/lorelei/svg?seed=avatar2",
+                      "https://api.dicebear.com/7.x/lorelei/svg?seed=avatar3",
+                      "https://api.dicebear.com/7.x/lorelei/svg?seed=avatar4",
+                      "https://api.dicebear.com/7.x/lorelei/svg?seed=avatar5",
+                    ].map((avatarUrl: string) => (
+                      <Avatar
+                        key={avatarUrl}
+                        className={`h-12 w-12 cursor-pointer ${selectedAvatarUrl === avatarUrl ? 'border-2 border-primary' : ''}`}
+                        onClick={() => setSelectedAvatarUrl(avatarUrl)}
+                      >
+                        <AvatarImage src={avatarUrl} alt={`Avatar for ${userData?.username || 'User'}`} />
+                        <AvatarFallback>{userData?.username?.charAt(0).toUpperCase() || '?'}</AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>

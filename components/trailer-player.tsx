@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { Play } from "lucide-react";
 
 interface TrailerPlayerProps {
-  youtubeTrailerUrl: string | null;
+  youtubeTrailerUrl: string | null | undefined;
   title: string;
   thumbnailUrl: string;
   className?: string;

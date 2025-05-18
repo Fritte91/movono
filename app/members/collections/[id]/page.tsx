@@ -23,6 +23,9 @@ export interface Collection {
   updatedAt: Date;
   userId: string;
   movies: Movie[];
+  gradientColor1?: string;
+  gradientColor2?: string;
+  gradientAngle?: number;
 }
 
 export default function CollectionDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -94,6 +97,9 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             posterUrl: cm.movies.poster_url,
             year: cm.movies.year
           })) || [],
+          gradientColor1: data.gradient_color1,
+          gradientColor2: data.gradient_color2,
+          gradientAngle: data.gradient_angle,
         };
         setCollection(fetchedCollection);
       } catch (error) {
@@ -150,21 +156,62 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
     });
   };
 
-  const handleSaveCollection = (collectionData: Partial<Collection>) => {
+  const handleSaveCollection = async (collectionData: Partial<Collection>) => {
     if (!collection) return;
 
-    setCollection({
-      ...collection,
-      name: collectionData.name || collection.name,
-      description: collectionData.description || collection.description,
-      isPublic: collectionData.isPublic !== undefined ? collectionData.isPublic : collection.isPublic,
-      updatedAt: new Date(),
-    });
+    try {
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+      
+      if (userError || !user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to manage collections",
+          variant: "destructive",
+        });
+        return;
+      }
 
-    toast({
-      title: "Collection updated",
-      description: "Your collection has been updated successfully.",
-    });
+      // Update existing collection in the database
+      const { error } = await supabaseClient
+        .from('collections')
+        .update({
+          name: collectionData.name,
+          description: collectionData.description,
+          is_public: collectionData.isPublic,
+          gradient_color1: collectionData.gradientColor1,
+          gradient_color2: collectionData.gradientColor2,
+          gradient_angle: collectionData.gradientAngle,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', collection.id);
+
+      if (error) throw error;
+
+      // Update local state with the new data and a fresh updatedAt timestamp
+      setCollection({
+        ...collection,
+        name: collectionData.name || collection.name,
+        description: collectionData.description || collection.description,
+        isPublic: collectionData.isPublic !== undefined ? collectionData.isPublic : collection.isPublic,
+        updatedAt: new Date(), // Update local state timestamp
+        gradientColor1: collectionData.gradientColor1 || collection.gradientColor1,
+        gradientColor2: collectionData.gradientColor2 || collection.gradientColor2,
+        gradientAngle: collectionData.gradientAngle || collection.gradientAngle,
+      });
+
+      toast({
+        title: "Collection updated",
+        description: "Your collection has been updated successfully.",
+      });
+
+    } catch (error) {
+      console.error('Error saving collection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save collection",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading || !collection) {
@@ -187,6 +234,12 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         </Link>
       </div>
       <div className="relative rounded-xl overflow-hidden mb-8">
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `linear-gradient(${collection.gradientAngle || 180}deg, ${collection.gradientColor1 || '#1e3a8a'}, ${collection.gradientColor2 || '#065f46'})`,
+          }}
+        ></div>
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80"></div>
         <img
           src={collection.coverImage || "/placeholder.svg?height=400&width=1200"}

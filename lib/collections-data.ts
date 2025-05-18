@@ -10,6 +10,9 @@ export interface Collection {
   updatedAt: Date;
   userId: string;
   movies: Movie[];
+  gradientColor1?: string;
+  gradientColor2?: string;
+  gradientAngle?: number;
 }
 
 // Sample collections for demo purposes

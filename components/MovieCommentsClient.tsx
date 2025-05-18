@@ -15,7 +15,9 @@ interface Comment {
   username: string;
   content: string;
   created_at: string;
-  avatar_url?: string; // Added for future avatar support
+  profiles?: {
+    avatar_url?: string;
+  };
 }
 
 interface MovieCommentsClientProps {
@@ -145,7 +147,7 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
           {comments.map((comment) => (
             <div key={comment.id} className="flex gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={comment.avatar_url || '/placeholder.svg'} alt={comment.username} />
+                <AvatarImage src={comment.profiles?.avatar_url || '/placeholder.svg'} alt={comment.username} />
                 <AvatarFallback>{comment.username.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
