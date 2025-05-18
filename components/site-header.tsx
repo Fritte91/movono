@@ -15,15 +15,20 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { supabaseClient } from "@/lib/supabase"
 
 export function SiteHeader() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const router = useRouter()
 
-  const handleLogout = () => {
-    // Simulate logout
-    router.push("/")
+  const handleLogout = async () => {
+    const { error } = await supabaseClient.auth.signOut()
+    if (error) {
+      console.error('Error logging out:', error)
+    } else {
+      router.push("/")
+    }
   }
 
   const handleSearch = (e: React.FormEvent) => {
