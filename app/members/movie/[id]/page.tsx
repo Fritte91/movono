@@ -92,6 +92,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
   const { toast } = useToast();
   const router = useRouter();
+  const [isTrailerPlaying, setIsTrailerPlaying] = useState(false);
 
   const resolvedParams = React.use(params);
 
@@ -198,6 +199,10 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     }
   };
 
+  const handleTrailerPlay = () => {
+    setIsTrailerPlaying(true);
+  };
+
   if (isLoading) {
     return (
       <div className="container py-20 text-center">
@@ -219,18 +224,21 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   return (
     <div className="pb-20">
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background z-10 pointer-events-none"></div>
+        {!isTrailerPlaying && (
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background z-10 pointer-events-none"></div>
+        )}
         <div className="h-[50vh] w-full overflow-hidden">
           <TrailerPlayer
             youtubeTrailerUrl={movie.youtubeTrailerUrl}
             title={movie.title}
             thumbnailUrl={movie.posterUrl || "/placeholder.svg?height=1080&width=1920"}
             className="w-full h-full"
+            onPlay={handleTrailerPlay}
           />
         </div>
       </div>
 
-      <div className="container relative z-20 -mt-20">
+      <div className={`container relative z-20 ${isTrailerPlaying ? 'mt-10' : '-mt-20'}`}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-1">
             <div className="rounded-lg overflow-hidden border border-border shadow-lg animate-float">

@@ -7,9 +7,10 @@ interface TrailerPlayerProps {
   title: string;
   thumbnailUrl: string;
   className?: string;
+  onPlay?: () => void;
 }
 
-export function TrailerPlayer({ youtubeTrailerUrl, title, thumbnailUrl, className }: TrailerPlayerProps) {
+export function TrailerPlayer({ youtubeTrailerUrl, title, thumbnailUrl, className, onPlay }: TrailerPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -20,6 +21,9 @@ export function TrailerPlayer({ youtubeTrailerUrl, title, thumbnailUrl, classNam
 
   const handlePlay = () => {
     setIsPlaying(true);
+    if (onPlay) {
+      onPlay();
+    }
   };
 
   return (
