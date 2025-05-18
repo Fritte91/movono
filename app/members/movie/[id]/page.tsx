@@ -240,6 +240,29 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     setIsTrailerPlaying(true);
   };
 
+  // Placeholder for streaming function
+  const handleStreamMovie = () => {
+    if (!movie?.torrents || movie.torrents.length === 0) {
+      toast({
+        title: "Error",
+        description: "No torrents available for streaming.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // TODO: Implement WebTorrent streaming logic here.
+    // You would typically select a torrent from movie.torrents
+    // Initialize WebTorrent client
+    // Start fetching and streaming the torrent
+    console.log("Stream button clicked. Torrents available:", movie.torrents);
+
+    toast({
+      title: "Streaming initiated",
+      description: "Attempting to stream the movie... (requires client-side implementation)",
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="container py-20 text-center">
@@ -317,6 +340,11 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {/* Add Stream Button */}
+              <Button variant="primary" className="w-full gap-2" onClick={handleStreamMovie}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Stream Movie
+              </Button>
               <Button variant="outline" className="w-full gap-2">
                 <Share2 className="h-4 w-4" />
                 Share

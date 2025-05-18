@@ -50,24 +50,29 @@ export default async function MembersPage() {
   // Fetch initial data for all sliders
   const [popularMovies, topRatedMovies, newReleases, comingSoonTMDB] = await Promise.all([
     fetchMoviesFromSupabase({ 
-      sortBy: 'ratings->>imdb', 
+      sortBy: 'popularity', 
       minYear: 1990, 
       maxYear: 2025, 
-      minImdb: 6, 
+      minImdb: 5.5,
+      minVoteCount: 100,
+      minPopularity: 10,
       limit: 20 
     }),
     fetchMoviesFromSupabase({ 
-      sortBy: 'ratings->>imdb', 
+      sortBy: 'vote_average', 
       minYear: 2000, 
       maxYear: 2025, 
-      minImdb: 8, 
+      minImdb: 7,
+      minVoteCount: 500,
+      minPopularity: 20,
       limit: 20 
     }),
     fetchMoviesFromSupabase({ 
-      sortBy: 'year', 
-      minYear: 2025, 
-      maxYear: 2025, 
-      minImdb: 6, 
+      sortBy: 'popularity', 
+      minYear: 2024, 
+      maxYear: 2024, 
+      minImdb: 5,
+      minVoteCount: 50,
       limit: 20 
     }),
     getUpcomingMovies()
@@ -81,8 +86,10 @@ export default async function MembersPage() {
       genre, 
       minYear: 1990, 
       maxYear: 2025, 
-      minImdb: 6, 
-      sortBy: 'year', 
+      minImdb: 5.5,
+      minVoteCount: 100,
+      minPopularity: 5,
+      sortBy: 'popularity', 
       limit: 20 
     })
   );

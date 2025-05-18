@@ -12,7 +12,7 @@ import Link from "next/link"
 import { RatingStars } from "@/components/rating-stars"
 import { Plus } from "lucide-react"
 import { supabaseClient } from "@/lib/supabase"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 // Import the new components and data
 import { CollectionsGrid } from "@/components/collections-grid"
@@ -25,6 +25,8 @@ import type { Collection } from "@/lib/collections-data"
 export default function ProfilePage() {
   const { toast } = useToast()
   const router = useRouter()
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'profile'; // Get tab from query or default to 'profile'
   const [isEditing, setIsEditing] = useState(false)
   const [collections, setCollections] = useState<Collection[]>([])
   const [achievements] = useState(getUserAchievements("user1"))
@@ -582,7 +584,7 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        <Tabs defaultValue="profile">
+        <Tabs defaultValue={initialTab} className="w-full">
           <TabsList className="mb-8">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="collections">My Collections</TabsTrigger>

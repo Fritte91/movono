@@ -223,132 +223,129 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   }
 
   return (
-    <div className="container py-8">
-      <div className="mb-6">
-        <Link
-          href="/members/profile?tab=collections"
-          className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
-        >
+    <div className="pb-20">
+      <div className="container py-8">
+        <Link href="/members/collections" className="flex items-center text-muted-foreground hover:text-primary transition-colors mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Collections
         </Link>
-      </div>
-      <div className="relative rounded-xl overflow-hidden mb-8">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: `linear-gradient(${collection.gradientAngle || 180}deg, ${collection.gradientColor1 || '#1e3a8a'}, ${collection.gradientColor2 || '#065f46'})`,
-          }}
-        ></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80"></div>
-        <img
-          src={collection.coverImage || "/placeholder.svg?height=400&width=1200"}
-          alt={collection.name}
-          className="w-full h-64 object-cover"
-        />
-        <div className="absolute bottom-0 left-0 right-0 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-white">{collection.name}</h1>
-              <p className="text-gray-300 max-w-2xl">{collection.description}</p>
+        <div className="relative rounded-xl overflow-hidden mb-8">
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(${collection.gradientAngle || 180}deg, ${collection.gradientColor1 || '#1e3a8a'}, ${collection.gradientColor2 || '#065f46'})`,
+            }}
+          ></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80"></div>
+          <img
+            src={collection.coverImage || "/placeholder.svg?height=400&width=1200"}
+            alt={collection.name}
+            className="w-full h-64 object-cover"
+          />
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-white">{collection.name}</h1>
+                <p className="text-gray-300 max-w-2xl">{collection.description}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleShare}>
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </Button>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleShare}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-            </div>
-          </div>
-          <div className="flex items-center mt-4">
-            <Avatar className="h-8 w-8 mr-2">
-              <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
-              <AvatarFallback>JD</AvatarFallback>
-            </Avatar>
-            <div className="text-sm text-gray-300">
-              Created by <span className="font-medium text-white">John Doe</span> • {collection.movies.length} movies
+            <div className="flex items-center mt-4">
+              <Avatar className="h-8 w-8 mr-2">
+                <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
+                <AvatarFallback>JD</AvatarFallback>
+              </Avatar>
+              <div className="text-sm text-gray-300">
+                Created by <span className="font-medium text-white">John Doe</span> • {collection.movies.length} movies
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Movies in this Collection</h2>
-        <Button onClick={() => router.push('/members')}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Movies
-        </Button>
-      </div>
-      {collection.movies.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {collection.movies.map((movie) => (
-            <div key={movie.id} className="group relative">
-              <Link href={`/members/movie/${movie.id}`} className="block">
-                <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
-                  <div className="aspect-[2/3] relative">
-                    <img
-                      src={movie.posterUrl || "/placeholder.svg"}
-                      alt={movie.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
-                      <Button variant="secondary" size="sm">
-                        View Details
-                      </Button>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                      <div className="text-sm font-medium truncate">{movie.title}</div>
-                      <div className="text-xs text-gray-400">{movie.year}</div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => handleRemoveMovie(movie.id)}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4"
-                >
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-              </Button>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 bg-card border border-border rounded-lg">
-          <div className="text-4xl mb-4">🎬</div>
-          <h3 className="text-lg font-medium mb-2">No Movies Yet</h3>
-          <p className="text-muted-foreground max-w-md mx-auto mb-6">
-            Start adding movies to your collection to keep track of your favorites.
-          </p>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Movies in this Collection</h2>
           <Button onClick={() => router.push('/members')}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Your First Movie
+            Add Movies
           </Button>
         </div>
-      )}
-      <CollectionDialog
-        open={isEditing}
-        onOpenChange={setIsEditing}
-        collection={collection}
-        onSave={handleSaveCollection}
-      />
+        {collection.movies.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {collection.movies.map((movie) => (
+              <div key={movie.id} className="group relative">
+                <Link href={`/members/movie/${movie.id}`} className="block">
+                  <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
+                    <div className="aspect-[2/3] relative">
+                      <img
+                        src={movie.posterUrl || "/placeholder.svg"}
+                        alt={movie.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                        <Button variant="secondary" size="sm">
+                          View Details
+                        </Button>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                        <div className="text-sm font-medium truncate">{movie.title}</div>
+                        <div className="text-xs text-gray-400">{movie.year}</div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => handleRemoveMovie(movie.id)}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-4 w-4"
+                  >
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-card border border-border rounded-lg">
+            <div className="text-4xl mb-4">🎬</div>
+            <h3 className="text-lg font-medium mb-2">No Movies Yet</h3>
+            <p className="text-muted-foreground max-w-md mx-auto mb-6">
+              Start adding movies to your collection to keep track of your favorites.
+            </p>
+            <Button onClick={() => router.push('/members')}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Your First Movie
+            </Button>
+          </div>
+        )}
+        <CollectionDialog
+          open={isEditing}
+          onOpenChange={setIsEditing}
+          collection={collection}
+          onSave={handleSaveCollection}
+        />
+      </div>
     </div>
   );
 }

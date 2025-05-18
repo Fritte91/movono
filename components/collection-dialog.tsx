@@ -70,7 +70,7 @@ export function CollectionDialog({ open, onOpenChange, collection, onSave }: Col
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] overflow-y-auto max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit Collection" : "Create New Collection"}</DialogTitle>
           <DialogDescription>
