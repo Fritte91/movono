@@ -1,68 +1,86 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { createBrowserClient } from '@supabase/ssr'
+import Link from 'next/link'
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Film, ArrowRight, Loader2 } from "lucide-react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { Film, UserPlus, Loader2 } from "lucide-react"
 import { useToast } from "@/components/ui/use-toast"
-import { supabaseClient } from "@/lib/supabase"
 
 const signupSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
 })
 
-type SignupFormData = z.infer<typeof signupSchema>
+type SignUpFormData = z.infer<typeof signupSchema>
 
-export default function SignupPage() {
-  const [isLoading, setIsLoading] = useState(false)
+export default function SignUp() {
   const router = useRouter()
   const { toast } = useToast()
-
+  const [isLoading, setIsLoading] = useState(false)
+  
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SignupFormData>({
+  } = useForm<SignUpFormData>({
     resolver: zodResolver(signupSchema),
   })
 
-  const onSubmit = async (data: SignupFormData) => {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  const onSubmit = async (data: SignUpFormData) => {
     try {
       setIsLoading(true)
-      const { error } = await supabaseClient.auth.signUp({
+      console.log('Starting signup process...')
+      
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           data: {
             username: data.username,
-          },
-        },
+            display_name: data.username
+          }
+        }
       })
 
-      if (error) {
-        throw error
+      console.log('Signup response:', { authData, error: signUpError })
+
+      if (signUpError) {
+        console.error('Signup error:', signUpError)
+        if (signUpError.message.includes('User already registered')) {
+          throw new Error('This email is already registered. Please try logging in instead.')
+        }
+        throw signUpError
+      }
+
+      if (!authData.user) {
+        throw new Error('No user data returned from signup')
       }
 
       toast({
         title: "Account created!",
-        description: "Please check your email to verify your account.",
+        description: "Please check your email to confirm your account.",
       })
 
-      router.push("/login")
-    } catch (error: any) {
+      router.push('/login?message=Account created successfully')
+    } catch (err: any) {
+      console.error('Signup error:', err)
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to create account. Please try again.",
+        description: err.message || "An error occurred during signup",
       })
     } finally {
       setIsLoading(false)
@@ -79,24 +97,11 @@ export default function SignupPage() {
               <span className="text-2xl font-bold">Movono</span>
             </Link>
             <h1 className="text-2xl font-bold mt-6">Create your account</h1>
-            <p className="text-muted-foreground mt-2">Join our exclusive film community</p>
+            <p className="text-muted-foreground mt-2">Join Movono today</p>
           </div>
 
           <div className="bg-card border border-border rounded-lg p-6 shadow-lg">
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  placeholder="filmfan123"
-                  className="search-input"
-                  {...register("username")}
-                />
-                {errors.username && (
-                  <p className="text-sm text-red-500">{errors.username.message}</p>
-                )}
-              </div>
-
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -112,6 +117,20 @@ export default function SignupPage() {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="johndoe"
+                  className="search-input"
+                  {...register("username")}
+                />
+                {errors.username && (
+                  <p className="text-sm text-red-500">{errors.username.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
@@ -123,7 +142,6 @@ export default function SignupPage() {
                 {errors.password && (
                   <p className="text-sm text-red-500">{errors.password.message}</p>
                 )}
-                <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
               </div>
 
               <Button type="submit" className="w-full mt-6" disabled={isLoading}>
@@ -134,8 +152,8 @@ export default function SignupPage() {
                   </>
                 ) : (
                   <>
-                    Create account
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                    Sign up
+                    <UserPlus className="ml-2 h-4 w-4" />
                   </>
                 )}
               </Button>
@@ -145,22 +163,11 @@ export default function SignupPage() {
               <p className="text-muted-foreground">
                 Already have an account?{" "}
                 <Link href="/login" className="text-primary hover:underline">
-                  Log in
+                  Sign in
                 </Link>
               </p>
             </div>
           </div>
-
-          <p className="text-xs text-center text-muted-foreground mt-8">
-            By creating an account, you agree to our{" "}
-            <Link href="#" className="underline underline-offset-2">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="#" className="underline underline-offset-2">
-              Privacy Policy
-            </Link>
-          </p>
         </div>
       </div>
     </div>

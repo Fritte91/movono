@@ -12,7 +12,7 @@ import { Film, LogIn, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/use-toast"
-import { supabaseClient } from "@/lib/supabase"
+import { supabase } from "@/lib/supabase-client"
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -37,36 +37,25 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true)
-      console.log('Attempting login with:', data.email)
 
-      const { data: authData, error } = await supabaseClient.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       })
 
-      console.log('Auth response:', { authData, error })
-
       if (error) {
-        console.error('Login error:', error)
         throw error
       }
-
-      if (!authData?.session) {
-        console.error('No session after successful login')
-        throw new Error('No session created after login')
-      }
-
-      console.log('Login successful, session:', authData.session)
 
       toast({
         title: "Welcome back!",
         description: "You've successfully logged in.",
       })
 
-      // Force a hard navigation to ensure the session is properly set
-      window.location.href = '/members'
+      router.refresh()
+      router.push('/members')
     } catch (error: any) {
-      console.error('Login error caught:', error)
+      console.error('Login error:', error)
       toast({
         variant: "destructive",
         title: "Error",
@@ -91,7 +80,7 @@ export default function LoginPage() {
           </div>
 
           <div className="bg-card border border-border rounded-lg p-6 shadow-lg">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" method="POST">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input

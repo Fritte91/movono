@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createServerClient } from '@supabase/ssr';
+import { createBrowserClient } from '@supabase/ssr';
 import { Movie } from './movie-data';
 
 interface FetchMoviesOptions {
@@ -30,7 +30,10 @@ export async function fetchMoviesFromSupabaseClient(
     offset?: number;
   } = {}
 ) {
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   let query = supabase
     .from("movies")
     .select("*")
@@ -39,38 +42,68 @@ export async function fetchMoviesFromSupabaseClient(
   switch (type) {
     case "popular":
       query = query
-        .gte("year", 1990)
+        .eq("original_language", "en")
+        .gte("year", 2000)
         .lte("year", 2025)
-        .or('ratings->>imdb.gte.5,ratings->>imdb.is.null')
-        .or('vote_count.gte.50,vote_count.is.null')
-        .or('popularity.gte.5,popularity.is.null')
-        .order("popularity", { ascending: false });
+        // Balanced quality filters
+        .or('ratings->>imdb.gte.6.5,ratings->>imdb.is.null')
+        .or('vote_count.gte.1000,vote_count.is.null')
+        .or('popularity.gte.15,popularity.is.null')
+        // Order by popularity and rating
+        .order("popularity", { ascending: false })
+        .order("ratings->>imdb", { ascending: false });
       break;
     case "top_rated":
       query = query
+        .eq("original_language", "en")
         .gte("year", 2000)
         .lte("year", 2025)
-        .or('ratings->>imdb.gte.6.5,ratings->>imdb.is.null')
-        .or('vote_count.gte.100,vote_count.is.null')
-        .or('popularity.gte.10,popularity.is.null')
-        .order("ratings->>imdb", { ascending: false });
+        // Quality filters for top rated
+        .or('ratings->>imdb.gte.7.0,ratings->>imdb.is.null')
+        .or('vote_count.gte.2000,vote_count.is.null')
+        .or('popularity.gte.20,popularity.is.null')
+        // Order by rating first
+        .order("ratings->>imdb", { ascending: false })
+        .order("popularity", { ascending: false });
       break;
     case "new_releases":
       query = query
+        .eq("original_language", "en")
         .eq("year", 2024)
-        .or('ratings->>imdb.gte.5,ratings->>imdb.is.null')
-        .or('vote_count.gte.10,vote_count.is.null')
-        .order("popularity", { ascending: false });
+        // More lenient filters for new releases
+        .or('ratings->>imdb.gte.6.0,ratings->>imdb.is.null')
+        .or('vote_count.gte.100,vote_count.is.null')
+        .or('popularity.gte.10,popularity.is.null')
+        // Order by popularity
+        .order("popularity", { ascending: false })
+        .order("ratings->>imdb", { ascending: false });
       break;
     case "genre":
       if (options.genre) {
+        // Different thresholds for different genres
+        const genreThresholds = {
+          'Animation': { rating: 6.5, votes: 500, popularity: 15, minYear: 2015 },
+          'War': { rating: 6.5, votes: 500, popularity: 15, minYear: 2015 },
+          'Documentary': { rating: 6.5, votes: 300, popularity: 10, minYear: 2015 },
+          'Romance': { rating: 6.5, votes: 1000, popularity: 20, minYear: 2015 },
+          'Horror': { rating: 6.5, votes: 1000, popularity: 20, minYear: 2015 },
+          'default': { rating: 7.0, votes: 2000, popularity: 25, minYear: 2015 }
+        };
+
+        const thresholds = genreThresholds[options.genre as keyof typeof genreThresholds] || genreThresholds.default;
+
         query = query
+          .eq("original_language", "en")
           .overlaps("genre", [options.genre])
-          .gte("year", 1990)
+          .gte("year", thresholds.minYear)
           .lte("year", 2025)
-          .or('ratings->>imdb.gte.5,ratings->>imdb.is.null')
-          .or('vote_count.gte.50,vote_count.is.null')
-          .or('popularity.gte.5,popularity.is.null')
+          // Stricter quality filters
+          .gte("ratings->>imdb", thresholds.rating.toString())
+          .gte("vote_count", thresholds.votes)
+          .gte("popularity", thresholds.popularity)
+          // Order by year (newest first), then rating, then popularity
+          .order("year", { ascending: false })
+          .order("ratings->>imdb", { ascending: false })
           .order("popularity", { ascending: false });
       }
       break;
@@ -115,6 +148,12 @@ export async function fetchMoviesFromSupabase({
       cookies: {
         get(name: string) {
           return cookieStore?.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore?.set(name, value, options);
+        },
+        remove(name: string, options: any) {
+          cookieStore?.set(name, '', { ...options, maxAge: 0 });
         },
       },
     }

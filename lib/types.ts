@@ -11,14 +11,25 @@ export interface Movie {
     trailerUrl?: string;
     runtime: number;
     ratings: {
-      imdb?: number;
-      rottenTomatoes?: number;
-      metacritic?: number;
+      imdb: number;
+      rottenTomatoes: string;
+      metacritic: number;
     };
-    language: string;
-    country: string;
+    language: string[];
+    country: string[];
     similar?: string[];
-    torrents?: any; // Adjust based on actual torrent data structure
+    torrents?: {
+      url: string;
+      quality: string;
+      size: string;
+      seeds: number;
+      peers: number;
+    }[];
     youtubeTrailerUrl?: string | null;
     userRating?: number;
+    tmdbId?: string;
+    imdbId?: string;
   }
+
+// Re-export the Movie type for backward compatibility
+export type { Movie as DetailedMovie };
