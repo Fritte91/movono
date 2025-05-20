@@ -187,6 +187,8 @@ export default function Members() {
         <h1 className="text-2xl font-bold">Welcome, {user?.user_metadata?.username}</h1>
       </div>
 
+      <HeroSection />
+
       <Suspense fallback={<div>Loading movies...</div>}>
         <MovieSlidersClient
           initialMovies={{
