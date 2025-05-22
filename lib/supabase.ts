@@ -36,8 +36,20 @@ export function createSupabaseServerClient(cookieStore?: CookieStore) {
   });
 }
 
-// Client-side Supabase client
-export const supabaseClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
+// Client-side Supabase client with custom configuration
+export const supabaseClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
+  global: {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  },
+  db: {
+    schema: 'public',
+  },
+  auth: {
+    persistSession: true,
+  },
+});
 
 export async function fetchMoviesFromSupabase({
   genre,

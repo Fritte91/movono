@@ -5,9 +5,12 @@ interface Comment {
   id: string;
   movie_id: string;
   user_id: string;
-  username: string;
   content: string;
   created_at: string;
+  profiles?: {
+    username?: string;
+    avatar_url?: string;
+  };
 }
 
 interface MovieCommentsServerProps {
@@ -18,7 +21,17 @@ export default async function MovieCommentsServer({ movieId }: MovieCommentsServ
   const supabase = createSupabaseServerClient();
   const { data: comments, error } = await supabase
     .from('comments')
-    .select('*')
+    .select(`
+      id,
+      movie_id,
+      user_id,
+      content,
+      created_at,
+      profiles:user_id (
+        username,
+        avatar_url
+      )
+    `)
     .eq('movie_id', movieId)
     .order('created_at', { ascending: false });
 

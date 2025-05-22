@@ -122,7 +122,7 @@ export default function PublicCollectionsPage() {
         const supabase = createSupabaseServerClient();
         const { data, error } = await supabase
           .from('collections')
-          .select('*, collection_movies(movies_mini(*))')
+          .select('*, collection_movies!collection_movies_collection_id_fkey(movies_mini(*))')
           .eq('is_public', true)
           .order('created_at', { ascending: false });
 

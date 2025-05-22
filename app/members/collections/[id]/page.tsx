@@ -44,7 +44,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         const supabase = createSupabaseServerClient();
         const { data, error } = await supabase
           .from('collections')
-          .select('*, collection_movies(movie_imdb_id, movies_mini(imdb_id, title, poster_url, year))')
+          .select('*, collection_movies!collection_movies_collection_id_fkey(movie_imdb_id, movies_mini(imdb_id, title, poster_url, year))')
           .eq('id', id)
           .single();
 

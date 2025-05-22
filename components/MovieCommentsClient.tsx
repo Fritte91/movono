@@ -12,10 +12,10 @@ interface Comment {
   id: string;
   movie_id: string;
   user_id: string;
-  username: string;
   content: string;
   created_at: string;
   profiles?: {
+    username?: string;
     avatar_url?: string;
   };
 }
@@ -57,30 +57,82 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
         return;
       }
 
-      const username = userData.user.user_metadata.username || 'Anonymous';
-      
-      const { data, error } = await supabaseClient
+      // Check if user has a profile, create one if not
+      const { data: profile, error: profileError } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('id', userData.user.id)
+        .single();
+
+      if (profileError && profileError.code === 'PGRST116') {
+        // Profile doesn't exist, create one
+        const { error: createProfileError } = await supabaseClient
+          .from('profiles')
+          .insert({
+            id: userData.user.id,
+            username: userData.user.email?.split('@')[0] || 'Anonymous',
+          });
+
+        if (createProfileError) {
+          console.error('Error creating profile:', createProfileError);
+          toast({
+            title: 'Error',
+            description: 'Failed to create user profile',
+            variant: 'destructive',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // Insert the comment without returning data
+      const { error: insertError } = await supabaseClient
         .from('comments')
         .insert({
           movie_id: movieId,
           user_id: userData.user.id,
-          username,
           content: newComment,
-        })
-        .select()
-        .single();
+        });
 
-      if (error) {
+      if (insertError) {
         console.error('Supabase error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          code: insertError.code
         });
         
         toast({
           title: 'Error',
-          description: `Failed to post comment: ${error.message}`,
+          description: `Failed to post comment: ${insertError.message}`,
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // After successful insert, fetch the updated comments
+      const { data: updatedComments, error: fetchError } = await supabaseClient
+        .from('comments')
+        .select(`
+          id,
+          movie_id,
+          user_id,
+          content,
+          created_at,
+          profiles (
+            username,
+            avatar_url
+          )
+        `)
+        .eq('movie_id', movieId)
+        .order('created_at', { ascending: false });
+
+      if (fetchError) {
+        console.error('Error fetching updated comments:', fetchError);
+        toast({
+          title: 'Error',
+          description: 'Comment posted but failed to refresh comments',
           variant: 'destructive',
         });
         setIsSubmitting(false);
@@ -88,7 +140,7 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
       }
 
       // Success case
-      setComments([data, ...comments]);
+      setComments(updatedComments || []);
       setNewComment('');
       setIsSubmitting(false);
       
@@ -147,12 +199,12 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
           {comments.map((comment) => (
             <div key={comment.id} className="flex gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={comment.profiles?.avatar_url || '/placeholder.svg'} alt={comment.username} />
-                <AvatarFallback>{comment.username.charAt(0).toUpperCase()}</AvatarFallback>
+                <AvatarImage src={comment.profiles?.avatar_url || '/placeholder.svg'} alt={comment.profiles?.username || 'User'} />
+                <AvatarFallback>{(comment.profiles?.username || 'U').charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold">{comment.username}</span>
+                  <span className="font-semibold">{comment.profiles?.username || 'Anonymous'}</span>
                   <span className="text-xs text-muted-foreground">
                     {new Date(comment.created_at).toLocaleDateString(undefined, {
                       year: 'numeric',

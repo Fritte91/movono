@@ -128,8 +128,8 @@ export default function ProfilePage() {
           .from('collections')
           .select(`
             *,
-            collection_movies (
-              movie_id
+            collection_movies!collection_movies_collection_id_fkey (
+              movie_imdb_id
             )
           `)
           .eq('user_id', user.id)

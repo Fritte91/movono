@@ -84,8 +84,15 @@ async function fetchComments(movieId: string): Promise<Comment[]> {
   const { data, error } = await supabase
     .from('comments')
     .select(`
-      *,
-      profiles ( avatar_url )
+      id,
+      movie_id,
+      user_id,
+      content,
+      created_at,
+      profiles (
+        username,
+        avatar_url
+      )
     `)
     .eq('movie_id', movieId)
     .order('created_at', { ascending: false });
