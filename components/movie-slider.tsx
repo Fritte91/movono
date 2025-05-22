@@ -44,15 +44,15 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
       const now = Date.now();
       if (now - lastRefreshRef.current >= REFRESH_INTERVAL) {
         if (onRefresh) {
-          console.log(`[${title}] Starting refresh...`);
+          
           try {
             const newMovies = await onRefresh();
-            console.log(`[${title}] Received ${newMovies.length} new movies`);
+            
             setCurrentMovies(newMovies);
             lastRefreshRef.current = now;
             setLastRefreshTime(new Date().toLocaleTimeString());
           } catch (error) {
-            console.error(`[${title}] Error refreshing movies:`, error);
+            
           }
         }
       }
@@ -66,7 +66,7 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
   useEffect(() => {
     // Ensuring movies is never undefined when passed into the component
     if (!movies) {
-      console.log("Movies data not yet loaded!");
+      
       return;
     }
   }, [movies]);
@@ -91,9 +91,7 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
   if (displayMovies && displayMovies.length > 0) {
     const firstMovie = displayMovies[0];
     const imgSrc = firstMovie.poster_url && firstMovie.poster_url !== "N/A" ? firstMovie.poster_url : "/placeholder.svg";
-    console.log(`[${title}] First movie title:`, firstMovie.title);
-    console.log(`[${title}] First movie poster_url:`, firstMovie.poster_url);
-    console.log(`[${title}] Final image src for first movie:`, imgSrc);
+    
   }
 
   // Filter out movies without imdb_id and log them
@@ -162,7 +160,7 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
         }}
       >
         {safeMovies.map((movie) => {
-          console.log('Slider movie:', movie);
+          
           const imgSrc = movie.poster_url && movie.poster_url !== "N/A" ? movie.poster_url : "/placeholder.svg";
           return (
             <div

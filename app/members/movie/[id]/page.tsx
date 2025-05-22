@@ -115,6 +115,8 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   const router = useRouter();
   const [isTrailerPlaying, setIsTrailerPlaying] = useState(false);
   const [omdbRatings, setOmdbRatings] = useState<OMDbRating[]>([]);
+  const [omdbImdbRating, setOmdbImdbRating] = useState<string | null>(null);
+  const [averageRating, setAverageRating] = useState<number | null>(null);
 
   const { id } = React.use(params);
 
@@ -144,7 +146,20 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
         if (user) {
           const { data: userCollections } = await supabaseClient
             .from('collections')
-            .select('id, name')
+            .select(`
+              id,
+              name,
+              collection_movies!collection_movies_collection_id_fkey (
+                movie_imdb_id,
+                movies_mini (
+                  imdb_id,
+                  title,
+                  poster_url,
+                  year,
+                  imdb_rating
+                )
+              )
+            `)
             .eq('user_id', user.id)
             .order('name');
           
@@ -164,13 +179,24 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
               const omdbData: OMDbMovie = await omdbResponse.json();
               if (omdbData.Response === "True" && omdbData.Ratings) {
                 setOmdbRatings(omdbData.Ratings);
+                // Extract IMDb rating from OMDb Ratings
+                const imdbRatingObj = omdbData.Ratings.find(r => r.Source === "Internet Movie Database");
+                if (imdbRatingObj && imdbRatingObj.Value) {
+                  setOmdbImdbRating(imdbRatingObj.Value);
+                } else {
+                  setOmdbImdbRating(null);
+                }
               } else if (omdbData.Response === "False") {
                 console.error("Error fetching OMDb data:", omdbData.Error);
+                setOmdbImdbRating(null);
               }
             } catch (omdbError) {
               console.error("Failed to fetch OMDb data:", omdbError);
+              setOmdbImdbRating(null);
             }
           }
+          // Fetch average rating for this movie
+          fetchAverageRating(fetchedMovie.id);
         }
       } catch (err) {
         setError("Failed to load movie details");
@@ -183,7 +209,25 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     fetchData();
   }, [id, router]);
 
-  const handleRatingChange = (rating: number) => {
+  async function fetchAverageRating(movieId: string) {
+    const { data, error } = await supabaseClient
+      .from('ratings')
+      .select('rating')
+      .eq('movie_imdb_id', movieId);
+    if (error) {
+      console.error('Error fetching average rating:', error);
+      setAverageRating(null);
+      return;
+    }
+    if (data && data.length > 0) {
+      const avg = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
+      setAverageRating(avg);
+    } else {
+      setAverageRating(null);
+    }
+  }
+
+  const handleRatingChange = async (rating: number) => {
     setUserRating(rating);
     toast({
       title: "Rating saved",
@@ -192,6 +236,26 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
 
     if (movie) {
       setMovie({ ...movie, userRating: rating });
+      // Upsert rating to Supabase
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (user) {
+        const { error } = await supabaseClient
+          .from('ratings')
+          .upsert({
+            user_id: user.id,
+            movie_imdb_id: movie.id,
+            rating,
+          }, { onConflict: ['user_id', 'movie_imdb_id'] });
+        if (error) {
+          toast({
+            title: "Error",
+            description: "Failed to save your rating.",
+            variant: "destructive",
+          });
+        } else {
+          fetchAverageRating(movie.id);
+        }
+      }
     }
   };
 
@@ -209,11 +273,34 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     window.open(`https://subdl.com/search/${imdbId}`, '_blank');
   };
 
-  const handleTorrentDownload = (torrent: { url: string; quality: string; size: string; seeds: number; peers: number; }) => {
+  const handleTorrentDownload = async (torrent: { url: string; quality: string; size: string; seeds: number; peers: number; }) => {
     toast({
       title: "Download started",
       description: `Downloading ${movie?.title} in ${torrent.quality} (${torrent.size}).`,
     });
+    if (!movie) return;
+    // Use the correct imdb_id for downloads
+    const imdbId = (movie as any).imdb_id || movie.id;
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    console.log('DOWNLOAD: user', user, 'movie', movie, 'imdbId', imdbId);
+    if (user) {
+      const { error, data } = await supabaseClient
+        .from('downloads')
+        .insert({
+          user_id: user.id,
+          movie_imdb_id: imdbId,
+        });
+      console.log('DOWNLOAD INSERT:', { error, data, userId: user.id, movieId: imdbId });
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to log download event.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      console.log('No user found for download event.');
+    }
   };
 
   const handleAddToCollection = async (collectionId: string) => {
@@ -312,7 +399,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
               <img src={movie.posterUrl} alt={movie.title} className="w-full h-auto" />
             </div>
             <div className="mt-6 space-y-4">
-              <YtsDownloads imdbId={movie.id} title={movie.title} />
+              <YtsDownloads imdbId={movie.id} title={movie.title} handleTorrentDownload={handleTorrentDownload} />
               <Button variant="outline" className="w-full gap-2" onClick={handleSubtitlesDownload}>
                 <Subtitles className="h-4 w-4" />
                 Download Subtitles
@@ -431,7 +518,11 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="bg-card border border-border rounded-lg p-4 text-center">
                     <div className="text-sm text-muted-foreground mb-1">IMDb</div>
-                    <div className="text-2xl font-bold">{(movie.ratings?.imdb ?? 0).toFixed(1)}/10</div>
+                    <div className="text-2xl font-bold">
+                      {omdbImdbRating
+                        ? omdbImdbRating
+                        : `${(movie.ratings?.imdb ?? 0).toFixed(1)}/10`}
+                    </div>
                   </div>
                   {omdbRatings
                     .filter(rating => rating.Source === "Rotten Tomatoes" || rating.Source === "Metacritic")
@@ -443,7 +534,9 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                   ))}
                   <div className="bg-card border border-border rounded-lg p-4 text-center">
                     <div className="text-sm text-muted-foreground mb-1">Movono Members</div>
-                    <div className="text-2xl font-bold">{(Math.random() * 2 + 3).toFixed(1)}/5</div>
+                    <div className="text-2xl font-bold">
+                      {averageRating ? averageRating.toFixed(1) : "N/A"}/5
+                    </div>
                   </div>
                 </div>
               </div>

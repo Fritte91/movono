@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function YtsDownloads({ imdbId, title }: { imdbId: string; title: string }) {
+export function YtsDownloads({ imdbId, title, handleTorrentDownload }: { imdbId: string; title: string; handleTorrentDownload?: (torrent: any) => void }) {
   const [torrents, setTorrents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -30,7 +30,7 @@ export function YtsDownloads({ imdbId, title }: { imdbId: string; title: string 
     fetchTorrents();
   }, [imdbId]);
 
-  const handleTorrentDownload = (torrent: any) => {
+  const localTorrentDownload = (torrent: any) => {
     toast({
       title: "Download started",
       description: `Downloading ${title} in ${torrent.quality} (${torrent.size}).`,
@@ -59,7 +59,7 @@ export function YtsDownloads({ imdbId, title }: { imdbId: string; title: string 
             torrents.map((torrent) => (
               <DropdownMenuItem
                 key={torrent.url}
-                onClick={() => handleTorrentDownload(torrent)}
+                onClick={() => (handleTorrentDownload ? handleTorrentDownload(torrent) : localTorrentDownload(torrent))}
                 asChild
               >
                 <a href={torrent.url} target="_blank" rel="noopener noreferrer" className="flex justify-between items-center w-full">

@@ -129,7 +129,13 @@ export default function ProfilePage() {
           .select(`
             *,
             collection_movies!collection_movies_collection_id_fkey (
-              movie_imdb_id
+              movie_imdb_id,
+              movies_mini (
+                imdb_id,
+                title,
+                poster_url,
+                year
+              )
             )
           `)
           .eq('user_id', user.id)
@@ -169,13 +175,8 @@ export default function ProfilePage() {
               id,
               rating,
               created_at,
-              movie_id,
-              movies (
-                id,
-                title,
-                poster_url,
-                year
-              )
+              movie_imdb_id,
+              movies_mini:movies_mini!inner(imdb_id, title, poster_url, year)
             `)
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
@@ -208,13 +209,8 @@ export default function ProfilePage() {
             .select(`
               id,
               created_at,
-              movie_id,
-              movies (
-                id,
-                title,
-                poster_url,
-                year
-              )
+              movie_imdb_id,
+              movies_mini(imdb_id, title, poster_url, year)
             `)
             .eq('user_id', user.id)
             .order('created_at', { ascending: false })
@@ -234,6 +230,7 @@ export default function ProfilePage() {
             }
           } else {
             setDownloadedMovies(downloads || [])
+            console.log('Downloaded movies:', downloads);
           }
         } catch (error) {
           console.error('Error in downloads query:', error)
@@ -454,22 +451,22 @@ export default function ProfilePage() {
                 key={rating.id}
                 className="flex items-center gap-4 p-3 rounded-lg hover:bg-card/60 transition-colors"
               >
-                <Link href={`/members/movie/${rating.movies.id}`} className="shrink-0">
+                <Link href={`/members/movie/${rating.movie_imdb_id}`} className="shrink-0">
                   <img
-                    src={rating.movies.poster_url || "/placeholder.svg"}
-                    alt={rating.movies.title}
+                    src={rating.movies_mini?.poster_url || "/placeholder.svg"}
+                    alt={rating.movies_mini?.title}
                     className="w-12 h-16 object-cover rounded"
                   />
                 </Link>
 
                 <div className="flex-1 min-w-0">
                   <Link
-                    href={`/members/movie/${rating.movies.id}`}
+                    href={`/members/movie/${rating.movie_imdb_id}`}
                     className="font-medium hover:text-primary transition-colors"
                   >
-                    {rating.movies.title}
+                    {rating.movies_mini?.title}
                   </Link>
-                  <div className="text-sm text-muted-foreground">{rating.movies.year}</div>
+                  <div className="text-sm text-muted-foreground">{rating.movies_mini?.year}</div>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -499,7 +496,6 @@ export default function ProfilePage() {
         <CardTitle>Download History</CardTitle>
         <CardDescription>Your recent downloads</CardDescription>
       </CardHeader>
-
       <CardContent>
         <div className="space-y-4">
           {downloadedMovies.length > 0 ? (
@@ -508,26 +504,24 @@ export default function ProfilePage() {
                 key={download.id}
                 className="flex items-center gap-4 p-3 rounded-lg hover:bg-card/60 transition-colors"
               >
-                <Link href={`/members/movie/${download.movies.id}`} className="shrink-0">
+                <Link href={`/members/movie/${download.movie_imdb_id}`} className="shrink-0">
                   <img
-                    src={download.movies.poster_url || "/placeholder.svg"}
-                    alt={download.movies.title}
+                    src={download.movies_mini?.poster_url || "/placeholder.svg"}
+                    alt={download.movies_mini?.title}
                     className="w-12 h-16 object-cover rounded"
                   />
                 </Link>
-
                 <div className="flex-1 min-w-0">
                   <Link
-                    href={`/members/movie/${download.movies.id}`}
+                    href={`/members/movie/${download.movie_imdb_id}`}
                     className="font-medium hover:text-primary transition-colors"
                   >
-                    {download.movies.title}
+                    {download.movies_mini?.title}
                   </Link>
                   <div className="text-sm text-muted-foreground">
                     Downloaded on {new Date(download.created_at).toLocaleDateString()}
                   </div>
                 </div>
-
                 <Button variant="outline" size="sm">
                   Download Again
                 </Button>
@@ -540,7 +534,6 @@ export default function ProfilePage() {
           )}
         </div>
       </CardContent>
-
       <CardFooter>
         <Button variant="outline" className="w-full">
           View All Downloads

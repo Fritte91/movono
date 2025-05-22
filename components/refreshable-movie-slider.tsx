@@ -48,14 +48,12 @@ export function RefreshableMovieSlider({ title, initialMovies, onRefresh }: Refr
   });
 
   useEffect(() => {
-    console.log(`[${title}] RefreshableMovieSlider received initialMovies:`, initialMovies.length);
     setMovies(initialMovies);
     sliderState[title].hasMovies = initialMovies.length > 0;
   }, [initialMovies, title]); // Added title dependency
 
   useEffect(() => {
     if (queryData) {
-      console.log(`[${title}] RefreshableMovieSlider useQuery fetched data:`, queryData.length);
       if (queryData.length > 0) {
         setMovies(queryData);
         sliderState[title].hasMovies = true;
@@ -64,7 +62,7 @@ export function RefreshableMovieSlider({ title, initialMovies, onRefresh }: Refr
         // If query returns 0 movies, increment retry count and keep existing
         sliderState[title].retryCount++;
         sliderState[title].hasMovies = false;
-        console.log(`[${title}] RefreshableMovieSlider received 0 movies from query. Retry count: ${sliderState[title].retryCount}`);
+        console.warn(`[${title}] Received 0 movies from query. Retry count: ${sliderState[title].retryCount}`);
       }
     }
   }, [queryData, title]); // Added title dependency
@@ -87,7 +85,6 @@ export function RefreshableMovieSlider({ title, initialMovies, onRefresh }: Refr
       // 2. We have no movies and have exceeded retry limit
       if ((now - state.lastRefresh < REFRESH_INTERVAL && !isInitialLoad) ||
           (!state.hasMovies && state.retryCount >= MAX_RETRIES)) {
-        console.log(`[${title}] Skipping refresh check.`);
         return;
       }
 
@@ -97,8 +94,6 @@ export function RefreshableMovieSlider({ title, initialMovies, onRefresh }: Refr
         const delay = (titleHash % 5) * STAGGER_DELAY;
         await new Promise(resolve => setTimeout(resolve, delay));
       }
-
-      console.log(`[${title}] Starting refresh...`);
 
       try {
         setIsRefreshing(true);
@@ -133,11 +128,6 @@ export function RefreshableMovieSlider({ title, initialMovies, onRefresh }: Refr
 
   // Use the cached data from React Query or initial data
   const displayMovies = queryData || movies;
-
-  // Add logging for the data passed to MovieSlider
-  useEffect(() => {
-    console.log(`[${title}] Passing ${displayMovies?.length || 0} movies to MovieSlider`);
-  }, [displayMovies, title]);
 
   return (
     <div>
