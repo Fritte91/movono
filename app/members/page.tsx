@@ -17,43 +17,52 @@ import { MovieSlidersClient } from '@/components/movie-sliders-client'
 import { Suspense } from "react"
 import { Movie } from "@/lib/movie-data"
 import { supabase } from '@/lib/supabase-client'
+import { getMoviesByCategory, fetchMoviesWithFilters } from '@/lib/filters/movieFilters'
+import { TMDB_GENRES } from '@/lib/api/tmdb'
 
 function mapTMDBMoviesToMovie(tmdbMovies: any[]): Movie[] {
   return tmdbMovies.map(movie => ({
     id: movie.id.toString(),
     title: movie.title,
-    year: parseInt(movie.release_date?.split('-')[0] || '2025'),
-    genre: movie.genre_ids?.map((id: number) => {
-      const genreMap: Record<number, string> = {
-        28: "Action",
-        12: "Adventure",
-        16: "Animation",
-        35: "Comedy",
-        80: "Crime",
-        99: "Documentary",
-        18: "Drama",
-        10751: "Family",
-        14: "Fantasy",
-        36: "History",
-        27: "Horror",
-        10402: "Music",
-        9648: "Mystery",
-        10749: "Romance",
-        878: "Sci-Fi",
-        53: "Thriller",
-        10752: "War",
-        37: "Western"
-      };
-      return genreMap[id] || "Drama";
-    }) || ["Drama"],
-    posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.svg'
+    year: new Date(movie.release_date).getFullYear(),
+    genre: movie.genre_ids.map((id: number) => TMDB_GENRES[id]).filter(Boolean),
+    posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.svg',
+    director: '',
+    cast: [],
+    plot: movie.overview || '',
+    runtime: 0,
+    ratings: {
+      imdb: movie.vote_average || 0,
+      rottenTomatoes: '0',
+      metacritic: 0
+    },
+    language: [movie.original_language || 'en'],
+    country: [],
+    youtubeTrailerUrl: null,
+    torrents: []
   }));
 }
+
+// Update the genres array to include only the most popular ones
+const mainGenres = [
+  "Action",
+  "Drama",
+  "Comedy",
+  "Thriller",
+  "Sci-Fi",
+  "Horror"
+];
 
 export default function Members() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [movies, setMovies] = useState<any>({
+  const [movies, setMovies] = useState<{
+    popular: Movie[];
+    topRated: Movie[];
+    newReleases: Movie[];
+    comingSoon: Movie[];
+    genreMovies: Record<string, Movie[]>;
+  }>({
     popular: [],
     topRated: [],
     newReleases: [],
@@ -103,53 +112,29 @@ export default function Members() {
   useEffect(() => {
     const fetchMovies = async () => {
       try {
-        const [popular, topRated, newReleases, comingSoonTMDB] = await Promise.all([
-          fetchMoviesFromSupabase({ 
-            sortBy: 'popularity', 
-            minYear: 1990, 
-            maxYear: 2025, 
-            minImdb: 5.5,
-            minVoteCount: 100,
-            minPopularity: 10,
-            limit: 20 
-          }),
-          fetchMoviesFromSupabase({ 
-            sortBy: 'vote_average', 
-            minYear: 2000, 
-            maxYear: 2025, 
-            minImdb: 7,
-            minVoteCount: 500,
-            minPopularity: 20,
-            limit: 20 
-          }),
-          fetchMoviesFromSupabase({ 
-            sortBy: 'popularity', 
-            minYear: 2024, 
-            maxYear: 2024, 
-            minImdb: 5,
-            minVoteCount: 50,
-            limit: 20 
-          }),
-          getUpcomingMovies()
+        const [popular, topRated, newReleases, comingSoon] = await Promise.all([
+          getMoviesByCategory('popular'),
+          getMoviesByCategory('top_rated'),
+          getMoviesByCategory('new_releases'),
+          getMoviesByCategory('coming_soon')
         ]);
 
-        const comingSoon = mapTMDBMoviesToMovie(comingSoonTMDB);
-
-        const genreMoviesPromises = genres.map(genre =>
-          fetchMoviesFromSupabase({ 
-            genre, 
-            minYear: 1990, 
-            maxYear: 2025, 
-            minImdb: 5.5,
-            minVoteCount: 100,
+        const genreMoviesPromises = mainGenres.map(genre =>
+          fetchMoviesWithFilters({ 
+            genre,
+            minYear: 1990,
+            maxYear: 2025,
+            minImdb: 5.0,
+            minVoteCount: 50,
             minPopularity: 5,
-            sortBy: 'popularity', 
-            limit: 20 
+            sortBy: 'popularity',
+            limit: 20
           })
         );
+        
         const genreMoviesResults = await Promise.all(genreMoviesPromises);
         const genreMovies = Object.fromEntries(
-          genres.map((genre, index) => [genre, genreMoviesResults[index]])
+          mainGenres.map((genre, index) => [genre, genreMoviesResults[index].movies])
         );
 
         setMovies({
@@ -188,6 +173,10 @@ export default function Members() {
       </div>
 
       <HeroSection />
+
+      <div className="container mx-auto px-4">
+        <NewsPreview />
+      </div>
 
       <Suspense fallback={<div>Loading movies...</div>}>
         <MovieSlidersClient

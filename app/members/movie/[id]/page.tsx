@@ -109,7 +109,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   const [isTrailerPlaying, setIsTrailerPlaying] = useState(false);
   const [omdbRatings, setOmdbRatings] = useState<OMDbRating[]>([]);
 
-  const resolvedParams = React.use(params);
+  const { id } = React.use(params);
 
   useEffect(() => {
     async function fetchData() {
@@ -118,7 +118,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
 
       try {
         // Fetch movie
-        const fetchedMovie = await getMovieById(resolvedParams.id);
+        const fetchedMovie = await getMovieById(id);
         if (fetchedMovie) {
           setMovie(fetchedMovie);
           setUserRating(fetchedMovie.userRating || 0);
@@ -129,7 +129,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
         }
 
         // Fetch comments
-        const fetchedComments = await fetchComments(resolvedParams.id);
+        const fetchedComments = await fetchComments(id);
         setComments(fetchedComments);
 
         // Fetch user's collections
@@ -174,7 +174,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     }
 
     fetchData();
-  }, [resolvedParams.id, router]);
+  }, [id, router]);
 
   const handleRatingChange = (rating: number) => {
     setUserRating(rating);
@@ -217,7 +217,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
         .from('collection_movies')
         .insert({
           collection_id: collectionId,
-          movie_id: movie.id,
+          movie_imdb_id: movie.id,
         });
 
       if (error) throw error;
@@ -424,7 +424,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                   <div className="bg-card border border-border rounded-lg p-4 text-center">
                     <div className="text-sm text-muted-foreground mb-1">IMDb</div>
-                    <div className="text-2xl font-bold">{movie.ratings.imdb.toFixed(1)}/10</div>
+                    <div className="text-2xl font-bold">{(movie.ratings?.imdb ?? 0).toFixed(1)}/10</div>
                   </div>
                   {omdbRatings
                     .filter(rating => rating.Source === "Rotten Tomatoes" || rating.Source === "Metacritic")

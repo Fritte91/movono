@@ -8,8 +8,8 @@ export async function getMoviesFromSupabase({ genre, sortBy = "ratings->>imdb", 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   let query = supabase
-    .from('movies')
-    .select('*');
+    .from('movies_mini')
+    .select('id, title, year, poster_url, imdb_id, genre, ratings');
 
   if (genre && genre !== "All") query = query.contains('genre', [genre]);
   if (sortBy) query = query.order(sortBy, { ascending: false });

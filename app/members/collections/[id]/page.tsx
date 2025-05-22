@@ -44,18 +44,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         const supabase = createSupabaseServerClient();
         const { data, error } = await supabase
           .from('collections')
-          .select(`
-            *,
-            collection_movies (
-              movie_id,
-              movies (
-                id,
-                title,
-                poster_url,
-                year
-              )
-            )
-          `)
+          .select('*, collection_movies(movie_imdb_id, movies_mini(imdb_id, title, poster_url, year))')
           .eq('id', id)
           .single();
 
@@ -91,11 +80,11 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           updatedAt: new Date(data.updated_at),
           userId: data.user_id,
           // Extract movie data from the nested collection_movies relationship
-          movies: data.collection_movies?.map((cm: any) => ({
-            id: cm.movie_id,
-            title: cm.movies.title,
-            posterUrl: cm.movies.poster_url,
-            year: cm.movies.year
+          movies: data.collection_movies?.filter((cm: any) => !!cm.movies_mini.imdb_id && !!cm.movies_mini.poster_url).map((cm: any) => ({
+            imdb_id: cm.movies_mini.imdb_id,
+            title: cm.movies_mini.title,
+            poster_url: cm.movies_mini.poster_url,
+            year: cm.movies_mini.year,
           })) || [],
           gradientColor1: data.gradient_color1,
           gradientColor2: data.gradient_color2,
@@ -125,14 +114,14 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         .from('collection_movies')
         .delete()
         .eq('collection_id', collection.id)
-        .eq('movie_id', movieId);
+        .eq('movie_imdb_id', movieId);
 
       if (error) throw error;
 
       // Update local state
       setCollection({
         ...collection,
-        movies: collection.movies.filter(m => m.id !== movieId)
+        movies: collection.movies.filter(m => m.imdb_id !== movieId)
       });
 
       toast({
@@ -279,52 +268,55 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         </div>
         {collection.movies.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {collection.movies.map((movie) => (
-              <div key={movie.id} className="group relative">
-                <Link href={`/members/movie/${movie.id}`} className="block">
-                  <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
-                    <div className="aspect-[2/3] relative">
-                      <img
-                        src={movie.posterUrl || "/placeholder.svg"}
-                        alt={movie.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
-                        <Button variant="secondary" size="sm">
-                          View Details
-                        </Button>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                        <div className="text-sm font-medium truncate">{movie.title}</div>
-                        <div className="text-xs text-gray-400">{movie.year}</div>
+            {collection.movies.map((movie) => {
+              console.log('Collection movie:', movie);
+              return (
+                <div key={movie.imdb_id} className="group relative">
+                  <Link href={`/members/movie/${movie.imdb_id}`} className="block">
+                    <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
+                      <div className="aspect-[2/3] relative">
+                        <img
+                          src={movie.poster_url || "/placeholder.svg"}
+                          alt={movie.title}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                          <Button variant="secondary" size="sm">
+                            View Details
+                          </Button>
+                        </div>
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                          <div className="text-sm font-medium truncate">{movie.title}</div>
+                          <div className="text-xs text-gray-400">{movie.year}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => handleRemoveMovie(movie.id)}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-4 w-4"
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleRemoveMovie(movie.imdb_id)}
                   >
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                  </svg>
-                </Button>
-              </div>
-            ))}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-4 w-4"
+                    >
+                      <path d="M18 6 6 18" />
+                      <path d="m6 6 12 12" />
+                    </svg>
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-12 bg-card border border-border rounded-lg">

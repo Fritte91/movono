@@ -1,35 +1,33 @@
 // lib/types.ts
 export interface Movie {
-    id: string;
+    id?: number;
     title: string;
     year: number;
-    director: string;
-    cast: string[];
+    poster_url: string;
     genre: string[];
-    plot: string;
-    posterUrl: string;
-    trailerUrl?: string;
-    runtime: number;
     ratings: {
       imdb: number;
       rottenTomatoes: string;
       metacritic: number;
     };
+    runtime: number;
+    released: string;
+    director: string;
+    writer: string;
+    actors: string[];
+    plot: string;
     language: string[];
     country: string[];
-    similar?: string[];
-    torrents?: {
-      url: string;
-      quality: string;
-      size: string;
-      seeds: number;
-      peers: number;
-    }[];
-    youtubeTrailerUrl?: string | null;
-    userRating?: number;
-    tmdbId?: string;
-    imdbId?: string;
-  }
+    awards: string;
+    metascore: number;
+    imdbVotes: number;
+    type: string;
+    dvd: string;
+    boxOffice: string;
+    production: string;
+    website: string;
+    imdb_id: string;
+}
 
 // Re-export the Movie type for backward compatibility
 export type { Movie as DetailedMovie };

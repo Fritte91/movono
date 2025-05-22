@@ -85,50 +85,96 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
     )
   }
 
+  const displayMovies = currentMovies || movies;
+
+  // Log the final src URL being used by the img tag for the first movie
+  if (displayMovies && displayMovies.length > 0) {
+    const firstMovie = displayMovies[0];
+    const imgSrc = firstMovie.poster_url && firstMovie.poster_url !== "N/A" ? firstMovie.poster_url : "/placeholder.svg";
+    console.log(`[${title}] First movie title:`, firstMovie.title);
+    console.log(`[${title}] First movie poster_url:`, firstMovie.poster_url);
+    console.log(`[${title}] Final image src for first movie:`, imgSrc);
+  }
+
+  // Filter out movies without imdb_id and log them
+  const safeMovies = (currentMovies || []).filter(m => {
+    if (!m.imdb_id) {
+      console.error('MISSING imdb_id:', m);
+      return false;
+    }
+    return true;
+  });
+
   if (!currentMovies || currentMovies.length === 0) {
     return <div>Loading movies...</div>;
   }
+
+  // Calculate the current page and total pages
+  const currentPage = Math.floor(currentIndex / visibleItems) + 1;
+  const totalPages = Math.ceil(currentMovies.length / visibleItems);
 
   return (
     <div className="slider-container">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-xl font-bold">{title} Movies</h2>
+          <p className="text-sm text-gray-500">
+            Showing {currentIndex + 1}-{Math.min(currentIndex + visibleItems, currentMovies.length)} of {currentMovies.length} movies
+          </p>
           {lastRefreshTime && (
             <p className="text-sm text-gray-500">Last refreshed: {lastRefreshTime}</p>
           )}
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={prevSlide} className="rounded-full">
-            <ChevronLeft className="h-4 w-4" />
-            <span className="sr-only">Previous</span>
-          </Button>
-          <Button variant="outline" size="icon" onClick={nextSlide} className="rounded-full">
-            <ChevronRight className="h-4 w-4" />
-            <span className="sr-only">Next</span>
-          </Button>
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-gray-500">
+            Page {currentPage} of {totalPages}
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={prevSlide} 
+              className="rounded-full"
+              disabled={currentIndex === 0}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="sr-only">Previous</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={nextSlide} 
+              className="rounded-full"
+              disabled={currentIndex + visibleItems >= currentMovies.length}
+            >
+              <ChevronRight className="h-4 w-4" />
+              <span className="sr-only">Next</span>
+            </Button>
+          </div>
         </div>
       </div>
 
-      <div className="relative overflow-hidden">
-        <div
-          ref={containerRef}
-          className="flex transition-transform duration-500 ease-out"
-          style={{
-            transform: `translateX(-${currentIndex * (100 / visibleItems)}%)`,
-          }}
-        >
-          {currentMovies.map((movie) => (
+      <div
+        ref={containerRef}
+        className="flex transition-transform duration-500 ease-out"
+        style={{
+          transform: `translateX(-${currentIndex * (100 / visibleItems)}%)`,
+        }}
+      >
+        {safeMovies.map((movie) => {
+          console.log('Slider movie:', movie);
+          const imgSrc = movie.poster_url && movie.poster_url !== "N/A" ? movie.poster_url : "/placeholder.svg";
+          return (
             <div
-              key={movie.id}
+              key={movie.imdb_id}
               className="flex-none p-2"
               style={{ width: `${100 / visibleItems}%` }}
             >
-              <Link href={`/members/movie/${movie.id}`}>
+              <Link href={`/members/movie/${movie.imdb_id}`}>
                 <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
                   <div className="aspect-[2/3] relative">
                     <img
-                      src={movie.posterUrl && movie.posterUrl !== "N/A" ? movie.posterUrl : "/placeholder.svg"}
+                      src={imgSrc}
                       alt={movie.title}
                       className="w-full h-full object-cover"
                     />
@@ -140,8 +186,8 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
                 </div>
               </Link>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   )

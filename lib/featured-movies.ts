@@ -59,7 +59,7 @@ export interface FeaturedMovie {
       description:
         "Moana sets sail once again to explore new horizons and uncover ancient mysteries of the seas.",
       genres: ["Animation", "Adventure", "Family"],
-      backgroundImage: "/featured/moana2.jpg",
+      backgroundImage: "/featured/moana2.jpeg",
       imdbId: "tt13622970",
     },
     {

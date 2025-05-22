@@ -36,7 +36,10 @@ const TMDB_GENRES: { [key: number]: string } = {
 };
 
 // Helper function to get a random offset
-const getRandomOffset = () => Math.floor(Math.random() * 100);
+const getRandomOffset = () => {
+  // Generate a random number between 0 and 1000 to get more variety
+  return Math.floor(Math.random() * 1000);
+};
 
 interface MovieSlidersClientProps {
   initialMovies: {
@@ -82,13 +85,33 @@ export function MovieSlidersClient({ initialMovies }: MovieSlidersClientProps) {
           onRefresh={async () => {
             const { getUpcomingMovies } = await import("@/lib/api/tmdb");
             const movies = await getUpcomingMovies();
-            return movies.map(movie => ({
-              id: movie.id,
-              title: movie.title,
-              year: movie.year,
-              genre: movie.genre || [],
-              posterUrl: movie.posterUrl || '/placeholder.svg'
-            }));
+            return movies
+              .filter(movie => !!movie.imdbId && !!movie.posterUrl)
+              .map(movie => ({
+                imdb_id: movie.imdbId,
+                title: movie.title,
+                year: movie.year,
+                poster_url: movie.posterUrl,
+                genre: movie.genre || [],
+                ratings: movie.ratings || { imdb: 0, rottenTomatoes: '0', metacritic: 0 },
+                runtime: movie.runtime || 0,
+                released: "",
+                director: movie.director || "",
+                writer: "",
+                actors: movie.cast || [],
+                plot: movie.plot || "",
+                language: movie.language || [],
+                country: movie.country || [],
+                awards: "",
+                metascore: 0,
+                imdbVotes: 0,
+                type: "movie",
+                dvd: "",
+                boxOffice: "",
+                production: "",
+                website: "",
+                id: movie.imdbId,
+              }));
           }}
         />
       </Suspense>

@@ -34,6 +34,8 @@ interface Movie {
   boxOffice: string;
   production: string;
   website: string;
+  imdb_id?: string;
+  imdbId?: string;
 }
 
 export default function TopImdbPage() {
@@ -113,7 +115,7 @@ export default function TopImdbPage() {
 
       <div className="space-y-4">
         {topMovies.map((movie, index) => (
-          <Link key={movie.id} href={`/members/movie/${movie.id}`}>
+          <Link key={movie.id} href={`/members/movie/${movie.imdbId || movie.id}`}>
             <div className="bg-card border border-border hover:border-primary/50 rounded-lg p-4 transition-all duration-300">
               <div className="flex items-center gap-4">
                 <div className="text-2xl font-bold text-muted-foreground w-10 text-center">#{index + 1}</div>

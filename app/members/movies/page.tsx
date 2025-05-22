@@ -42,6 +42,7 @@ interface Movie {
   boxOffice: string;
   production: string;
   website: string;
+  imdb_id?: string;
 }
 
 export default function MoviesPage() {
@@ -66,10 +67,13 @@ export default function MoviesPage() {
           limit: 500,
         });
         // Map poster_url to posterUrl for compatibility
-        const mapped = (movies || []).map((movie) => ({
-          ...movie,
-          posterUrl: movie.poster_url || movie.posterUrl || "/placeholder.svg",
-        }));
+        const mapped = (movies || [])
+          .filter(movie => !!movie.imdb_id && !!movie.poster_url)
+          .map((movie) => ({
+            ...movie,
+            imdb_id: movie.imdb_id,
+            poster_url: movie.poster_url,
+          }));
         setAllMovies(mapped);
         setCurrentPage(1);
       } catch (err) {
@@ -146,29 +150,32 @@ export default function MoviesPage() {
       {currentMovies.length > 0 ? (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {currentMovies.map((movie) => (
-              <Link key={movie.id} href={`/members/movie/${movie.id}`} className="group">
-                <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
-                  <div className="aspect-[2/3] relative">
-                    <img
-                      src={movie.posterUrl || "/placeholder.svg"}
-                      alt={movie.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
-                      <Button variant="secondary" size="sm">
-                        View Details
-                      </Button>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                      <div className="text-sm font-medium truncate">{movie.title}</div>
-                      <div className="text-xs text-gray-400">{movie.year}</div>
-                      <div className="text-xs text-gray-400">{movie.ratings?.imdb || "N/A"}/10</div>
+            {currentMovies.map((movie) => {
+              console.log('Slider movie:', movie);
+              return (
+                <Link key={movie.imdb_id} href={`/members/movie/${movie.imdb_id}`} className="group">
+                  <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
+                    <div className="aspect-[2/3] relative">
+                      <img
+                        src={movie.posterUrl || "/placeholder.svg"}
+                        alt={movie.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
+                        <Button variant="secondary" size="sm">
+                          View Details
+                        </Button>
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                        <div className="text-sm font-medium truncate">{movie.title}</div>
+                        <div className="text-xs text-gray-400">{movie.year}</div>
+                        <div className="text-xs text-gray-400">{movie.ratings?.imdb || "N/A"}/10</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))}
+                </Link>
+              );
+            })}
           </div>
 
           <div className="flex items-center justify-between mt-8">

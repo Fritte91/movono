@@ -14,7 +14,7 @@ interface TMDBMovie {
 }
 
 // TMDB genre mapping (based on /genre/movie/list)
-const TMDB_GENRES: { [key: number]: string } = {
+export const TMDB_GENRES: { [key: number]: string } = {
   28: "Action",
   12: "Adventure",
   16: "Animation",

@@ -122,7 +122,7 @@ export default function PublicCollectionsPage() {
         const supabase = createSupabaseServerClient();
         const { data, error } = await supabase
           .from('collections')
-          .select('*, collection_movies(movies(*))')
+          .select('*, collection_movies(movies_mini(*))')
           .eq('is_public', true)
           .order('created_at', { ascending: false });
 
@@ -140,12 +140,12 @@ export default function PublicCollectionsPage() {
             updatedAt: new Date(item.updated_at),
             userId: item.user_id,
             movies: item.collection_movies?.map((cm: any) => ({
-              id: cm.movies.id,
-              title: cm.movies.title,
-              posterUrl: cm.movies.poster_url,
-              year: cm.movies.year,
-              imdbId: cm.movies.imdb_id,
-              genre: cm.movies.genre,
+              id: cm.movies_mini.imdb_id,
+              title: cm.movies_mini.title,
+              posterUrl: cm.movies_mini.poster_url,
+              year: cm.movies_mini.year,
+              imdbId: cm.movies_mini.imdb_id,
+              genre: cm.movies_mini.genre,
             })),
             gradientColor1: item.gradient_color1,
             gradientColor2: item.gradient_color2,

@@ -4,6 +4,11 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'image.tmdb.org',
+        pathname: '/t/p/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'via.placeholder.com',
       },
       {
@@ -15,7 +20,7 @@ const nextConfig = {
         hostname: 'm.media-amazon.com', // Added this to allow Amazon images
       },
     ],
-    domains: ['witpoqobiuvhokyjopod.supabase.co'],
+    domains: ['witpoqobiuvhokyjopod.supabase.co', 'image.tmdb.org'],
   },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: 'https://witpoqobiuvhokyjopod.supabase.co',
