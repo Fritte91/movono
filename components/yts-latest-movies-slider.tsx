@@ -62,7 +62,7 @@ export function YtsLatestMoviesSlider() {
   return (
     <div className="space-y-8">
       <MovieSlider 
-        title="Latest YTS Movies" 
+        title="Latest Download" 
         movies={movies}
       />
     </div>

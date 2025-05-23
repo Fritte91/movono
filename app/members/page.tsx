@@ -188,8 +188,8 @@ export default function Members() {
       </Suspense>
 
       <div className="container mx-auto px-4">
-        <Suspense fallback={<div>Loading latest YTS movies...</div>}>
-          <YtsLatestMoviesSlider />
+        <Suspense fallback={<div>Loading latest Download movies...</div>}>
+          <YtsLatestMoviesSlider /> 
         </Suspense>
         <NewsPreview />
       </div>
