@@ -12,7 +12,12 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata = {
   title: "Movono - Premium Film Community",
   description: "Your exclusive source for high-quality film torrents",
-  generator: 'v0.dev'
+  generator: 'v0.dev',
+  icons: [
+    { rel: 'icon', type: 'image/x-icon', sizes: '16x16', url: '/movono16.ico' },
+    { rel: 'icon', type: 'image/x-icon', sizes: '32x32', url: '/movono32.ico' },
+    { rel: 'shortcut icon', url: '/movono32.ico' },
+  ]
 }
 
 export default function RootLayout({
@@ -22,6 +27,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" type="image/x-icon" sizes="16x16" href="/movono16.ico" />
+        <link rel="icon" type="image/x-icon" sizes="32x32" href="/movono32.ico" />
+        <link rel="shortcut icon" href="/movono32.ico" />
+      </head>
       <body className={`${inter.className} antialiased`}>
         <Providers>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
