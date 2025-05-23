@@ -19,7 +19,8 @@ interface Movie {
   id: string;
   title: string;
   year: number;
-  posterUrl: string;
+  poster_url: string;
+  imdb_id: string;
   genre: string[];
   ratings: {
     imdb: number;
@@ -42,7 +43,6 @@ interface Movie {
   boxOffice: string;
   production: string;
   website: string;
-  imdb_id?: string;
 }
 
 export default function MoviesPage() {
@@ -66,13 +66,12 @@ export default function MoviesPage() {
           sortBy: "ratings->>imdb",
           limit: 500,
         });
-        // Map poster_url to posterUrl for compatibility
+        // Map the movies to match our interface
         const mapped = (movies || [])
           .filter(movie => !!movie.imdb_id && !!movie.poster_url)
           .map((movie) => ({
             ...movie,
-            imdb_id: movie.imdb_id,
-            poster_url: movie.poster_url,
+            posterUrl: movie.poster_url,
           }));
         setAllMovies(mapped);
         setCurrentPage(1);

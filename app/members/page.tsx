@@ -19,6 +19,7 @@ import { Movie } from "@/lib/movie-data"
 import { supabase } from '@/lib/supabase-client'
 import { getMoviesByCategory, fetchMoviesWithFilters } from '@/lib/filters/movieFilters'
 import { TMDB_GENRES } from '@/lib/api/tmdb'
+import { YtsLatestMoviesSlider } from '@/components/yts-latest-movies-slider'
 
 function mapTMDBMoviesToMovie(tmdbMovies: any[]): Movie[] {
   return tmdbMovies.map(movie => ({
@@ -174,10 +175,6 @@ export default function Members() {
 
       <HeroSection />
 
-      <div className="container mx-auto px-4">
-        <NewsPreview />
-      </div>
-
       <Suspense fallback={<div>Loading movies...</div>}>
         <MovieSlidersClient
           initialMovies={{
@@ -189,6 +186,13 @@ export default function Members() {
           }}
         />
       </Suspense>
+
+      <div className="container mx-auto px-4">
+        <Suspense fallback={<div>Loading latest YTS movies...</div>}>
+          <YtsLatestMoviesSlider />
+        </Suspense>
+        <NewsPreview />
+      </div>
     </div>
   )
 }

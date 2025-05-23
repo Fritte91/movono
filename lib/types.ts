@@ -1,6 +1,6 @@
 // lib/types.ts
 export interface Movie {
-    id?: number;
+    id: string | number;
     title: string;
     year: number;
     poster_url: string;
@@ -26,7 +26,7 @@ export interface Movie {
     boxOffice: string;
     production: string;
     website: string;
-    imdb_id: string;
+    imdb_id?: string;
 }
 
 // Re-export the Movie type for backward compatibility

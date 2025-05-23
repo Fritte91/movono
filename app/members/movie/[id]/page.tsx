@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabaseClient } from "@/lib/supabase";
+import { getLatestYtsMovies, getYtsMovieById, getYtsMovieByImdbId, type YtsMovie } from '@/lib/yts-api';
 
 export interface DetailedMovie {
   id: string;
@@ -124,8 +125,165 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     async function fetchData() {
       setIsLoading(true);
       setError(null);
-
       try {
+        // If the ID is an IMDb ID (tt...), try DB first, then YTS
+        if (/^tt\d+$/.test(id)) {
+          // Try to fetch from your DB
+          const fetchedMovie = await getMovieById(id);
+          if (fetchedMovie) {
+            setMovie(fetchedMovie);
+            setUserRating(fetchedMovie.userRating || 0);
+            // Fetch comments, collections, OMDb, etc. as before
+            const fetchedComments = await fetchComments(id);
+            setComments(fetchedComments);
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            if (user) {
+              const { data: userCollections } = await supabaseClient
+                .from('collections')
+                .select('id, name')
+                .eq('user_id', user.id)
+                .order('name');
+              console.log('Fetched collections:', userCollections); // Debugging
+              setCollections(userCollections || []);
+            }
+            // Fetch OMDb ratings if movie data is available and has an IMDb ID (part of the movie.id)
+            if (fetchedMovie && fetchedMovie.id) {
+              // Extract IMDb ID (assuming it's part of the movie.id or can be derived)
+              // You might need to adjust this logic based on how your movie.id is structured
+              const imdbIdMatch = fetchedMovie.id.match(/tt\d+/);
+              if (imdbIdMatch && imdbIdMatch[0]) {
+                const imdbId = imdbIdMatch[0];
+                try {
+                  const omdbApiKey = 'e2253ed9'; // Hardcoded API key for testing
+                  const omdbResponse = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${omdbApiKey}`);
+                  const omdbData: OMDbMovie = await omdbResponse.json();
+                  if (omdbData.Response === "True" && omdbData.Ratings) {
+                    setOmdbRatings(omdbData.Ratings);
+                    // Extract IMDb rating from OMDb Ratings
+                    const imdbRatingObj = omdbData.Ratings.find(r => r.Source === "Internet Movie Database");
+                    if (imdbRatingObj && imdbRatingObj.Value) {
+                      setOmdbImdbRating(imdbRatingObj.Value);
+                    } else {
+                      setOmdbImdbRating(null);
+                    }
+                  } else if (omdbData.Response === "False") {
+                    console.error("Error fetching OMDb data:", omdbData.Error);
+                    setOmdbImdbRating(null);
+                  }
+                } catch (omdbError) {
+                  console.error("Failed to fetch OMDb data:", omdbError);
+                  setOmdbImdbRating(null);
+                }
+              }
+              // Fetch average rating for this movie
+              fetchAverageRating(fetchedMovie.id);
+            }
+            setIsLoading(false);
+            return;
+          }
+          // If not found, try YTS by IMDb ID
+          const ytsMovie = await getYtsMovieByImdbId(id);
+          if (ytsMovie) {
+            const mapped: DetailedMovie = {
+              id: ytsMovie.imdb_code,
+              title: ytsMovie.title_english,
+              posterUrl: ytsMovie.large_cover_image,
+              youtubeTrailerUrl: ytsMovie.yt_trailer_code ? `https://www.youtube.com/watch?v=${ytsMovie.yt_trailer_code}` : undefined,
+              year: ytsMovie.year,
+              runtime: ytsMovie.runtime,
+              language: [ytsMovie.language],
+              country: [],
+              genre: ytsMovie.genres,
+              plot: ytsMovie.description_full || ytsMovie.summary,
+              director: '',
+              writer: '',
+              cast: [],
+              awards: '',
+              metascore: 0,
+              imdbVotes: 0,
+              type: 'movie',
+              dvd: '',
+              boxOffice: '',
+              production: '',
+              website: '',
+              ratings: {
+                imdb: ytsMovie.rating,
+                rottenTomatoes: 'N/A',
+                metacritic: 0
+              },
+              userRating: 0,
+              torrents: ytsMovie.torrents.map(t => ({
+                url: t.url,
+                quality: t.quality,
+                size: t.size,
+                seeds: t.seeds,
+                peers: t.peers
+              }))
+            };
+            setMovie(mapped);
+            setUserRating(0);
+            setComments([]);
+            setCollections([]);
+            setIsLoading(false);
+            return;
+          } else {
+            setError('Movie not found');
+            setIsLoading(false);
+            return;
+          }
+        }
+        // If the ID is a YTS numeric ID, fetch from YTS by ID
+        if (/^\d+$/.test(id)) {
+          const ytsMovie = await getYtsMovieById(Number(id));
+          if (ytsMovie) {
+            const mapped: DetailedMovie = {
+              id: ytsMovie.imdb_code,
+              title: ytsMovie.title_english,
+              posterUrl: ytsMovie.large_cover_image,
+              youtubeTrailerUrl: ytsMovie.yt_trailer_code ? `https://www.youtube.com/watch?v=${ytsMovie.yt_trailer_code}` : undefined,
+              year: ytsMovie.year,
+              runtime: ytsMovie.runtime,
+              language: [ytsMovie.language],
+              country: [],
+              genre: ytsMovie.genres,
+              plot: ytsMovie.description_full || ytsMovie.summary,
+              director: '',
+              writer: '',
+              cast: [],
+              awards: '',
+              metascore: 0,
+              imdbVotes: 0,
+              type: 'movie',
+              dvd: '',
+              boxOffice: '',
+              production: '',
+              website: '',
+              ratings: {
+                imdb: ytsMovie.rating,
+                rottenTomatoes: 'N/A',
+                metacritic: 0
+              },
+              userRating: 0,
+              torrents: ytsMovie.torrents.map(t => ({
+                url: t.url,
+                quality: t.quality,
+                size: t.size,
+                seeds: t.seeds,
+                peers: t.peers
+              }))
+            };
+            setMovie(mapped);
+            setUserRating(0);
+            setComments([]);
+            setCollections([]);
+            setIsLoading(false);
+            return;
+          } else {
+            setError('YTS Movie not found');
+            setIsLoading(false);
+            return;
+          }
+        }
         // Fetch movie
         const fetchedMovie = await getMovieById(id);
         if (fetchedMovie) {
@@ -146,23 +304,10 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
         if (user) {
           const { data: userCollections } = await supabaseClient
             .from('collections')
-            .select(`
-              id,
-              name,
-              collection_movies!collection_movies_collection_id_fkey (
-                movie_imdb_id,
-                movies_mini (
-                  imdb_id,
-                  title,
-                  poster_url,
-                  year,
-                  imdb_rating
-                )
-              )
-            `)
+            .select('id, name')
             .eq('user_id', user.id)
             .order('name');
-          
+          console.log('Fetched collections:', userCollections); // Debugging
           setCollections(userCollections || []);
         }
 
@@ -412,7 +557,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  {collections.length > 0 ? (
+                  {collections && collections.length > 0 ? (
                     collections.map((collection) => (
                       <DropdownMenuItem
                         key={collection.id}

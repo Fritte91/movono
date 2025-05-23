@@ -45,6 +45,7 @@ export default function SearchPage() {
   const [isFiltersVisible, setIsFiltersVisible] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Add this useEffect to handle URL query parameter
   useEffect(() => {
@@ -58,6 +59,7 @@ export default function SearchPage() {
 
   const handleSearchWithQuery = async (searchQuery: string) => {
     setIsLoading(true)
+    setError(null)
     let filters: any = {
       sortBy: "ratings->>imdb",
       limit: 100,
@@ -88,23 +90,83 @@ export default function SearchPage() {
 
     // Use a custom version of getMoviesFromSupabase that allows customFilter
     const { createClient } = await import("@supabase/supabase-js")
-    const supabaseUrl = 'https://ylvgvgkyawmialfcudex.supabase.co'
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsdmd2Z2t5YXdtaWFsZmN1ZGV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDM0OTEsImV4cCI6MjA2MjY3OTQ5MX0.7EMJcWM1e1LfwY1cbTmlyPYCwmEtZwZwg1fe6YGxo_0'
+    const supabaseUrl = 'https://witpoqobiuvhokyjopod.supabase.co'
+    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpdHBvcW9iaXV2aG9reWpvcG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc2Mjg1NDYsImV4cCI6MjA2MzIwNDU0Nn0.-a_2H_9eJP3lPMOcaK19kWVGrVhzGnhzqmggY9my9RQ'
     const supabase = createClient(supabaseUrl, supabaseAnonKey)
-    let queryBuilder = supabase.from("movies").select("*")
-    queryBuilder = customFilter(queryBuilder)
-    queryBuilder = queryBuilder.order("ratings->>imdb", { ascending: false }).limit(100)
-    const { data, error } = await queryBuilder
-    const mapped = (data || [])
-      .filter((movie: any) => !!movie.imdb_id && !!movie.poster_url)
-      .map((movie: any) => ({
+
+    try {
+      // Search in both tables
+      const [miniResults, moviesResults] = await Promise.all([
+        // Query movies_mini table
+        (async () => {
+          let queryBuilder = supabase.from("movies_mini").select("*")
+          queryBuilder = customFilter(queryBuilder)
+          queryBuilder = queryBuilder.order("ratings->>imdb", { ascending: false }).limit(100)
+          const { data, error } = await queryBuilder
+          if (error) {
+            console.error("Error fetching from movies_mini:", error)
+            return []
+          }
+          console.log("movies_mini results:", data?.length || 0)
+          return (data || []).map((movie: any) => ({
+            ...movie,
+            id_type: 'imdb',
+            unique_id: movie.imdb_id
+          }))
+        })(),
+        // Query movies table
+        (async () => {
+          let queryBuilder = supabase.from("movies").select("*")
+          queryBuilder = customFilter(queryBuilder)
+          queryBuilder = queryBuilder.order("ratings->>imdb", { ascending: false }).limit(100)
+          const { data, error } = await queryBuilder
+          if (error) {
+            console.error("Error fetching from movies:", error)
+            return []
+          }
+          console.log("movies results:", data?.length || 0)
+          return (data || []).map((movie: any) => ({
+            ...movie,
+            id_type: 'imdb',
+            unique_id: movie.id, // Use id as imdb_id
+            imdb_id: movie.id, // Map id to imdb_id for compatibility
+            poster_url: movie.poster_url || movie.backdrop_url // Use backdrop_url as fallback
+          }))
+        })()
+      ])
+
+      console.log("Combined results before filtering:", miniResults.length + moviesResults.length)
+      // Process and combine results
+      const allResults = [...miniResults, ...moviesResults]
+        .filter((movie: any) => !!movie.unique_id && !!movie.poster_url)
+      console.log("Results after filtering:", allResults.length)
+
+      const mapped = allResults.map((movie: any) => ({
         ...movie,
-        imdb_id: movie.imdb_id,
+        imdb_id: movie.unique_id, // Use unique_id for both tables
         poster_url: movie.poster_url,
       }))
-    setResults(mapped)
-    setHasSearched(true)
-    setIsLoading(false)
+
+      // Deduplicate based on unique_id
+      const uniqueResults = Array.from(
+        new Map(mapped.map(movie => [movie.unique_id, movie])).values()
+      )
+      console.log("Final unique results:", uniqueResults.length)
+
+      // Sort by IMDB rating
+      const sortedResults = uniqueResults.sort((a, b) => 
+        (b.ratings?.imdb || 0) - (a.ratings?.imdb || 0)
+      )
+
+      setResults(sortedResults)
+      setHasSearched(true)
+    } catch (error) {
+      console.error("Search error:", error)
+      setError("Failed to search movies. Please try again.")
+      setResults([])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleSearch = async () => {

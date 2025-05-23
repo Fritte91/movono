@@ -21,6 +21,7 @@ export function SimilarMovies({ movieId }: { movieId: string }) {
       try {
         const res = await fetch(`/api/similar?movieId=${movieId}`);
         const data = await res.json();
+        console.log('API Response:', data.movies);
         setSimilarMovies(data.movies || []);
       } catch (err) {
         console.error('Error fetching similar movies:', err);
@@ -39,18 +40,48 @@ export function SimilarMovies({ movieId }: { movieId: string }) {
     return null;
   }
 
+  const mappedMovies = similarMovies.map(movie => {
+    console.log('Processing movie:', { title: movie.title, poster_url: movie.poster_url });
+    return {
+      id: movie.imdb_id,
+      title: movie.title,
+      poster_url: movie.poster_url,
+      year: movie.year,
+      imdbRating: movie.imdb_rating,
+      genre: [],
+      ratings: {
+        imdb: movie.imdb_rating,
+        rottenTomatoes: "N/A",
+        metacritic: 0
+      },
+      runtime: 0,
+      released: "",
+      director: "",
+      writer: "",
+      actors: [],
+      plot: "",
+      language: [],
+      country: [],
+      awards: "",
+      metascore: 0,
+      imdbVotes: 0,
+      type: "movie",
+      dvd: "",
+      boxOffice: "",
+      production: "",
+      website: "",
+      imdb_id: movie.imdb_id
+    };
+  });
+
+  console.log('Mapped movies for slider:', mappedMovies.map(m => ({ title: m.title, poster_url: m.poster_url })));
+
   return (
     <div className="mt-16">
       <h2 className="text-2xl font-bold mb-6">Similar Movies</h2>
       <MovieSlider 
         title="" 
-        movies={similarMovies.map(movie => ({
-          id: movie.imdb_id,
-          title: movie.title,
-          posterUrl: movie.poster_url,
-          year: movie.year,
-          imdbRating: movie.imdb_rating
-        }))} 
+        movies={mappedMovies}
       />
     </div>
   );
