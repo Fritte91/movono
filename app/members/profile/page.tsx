@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useToast } from "@/components/ui/use-toast"
 import Link from "next/link"
 import { RatingStars } from "@/components/rating-stars"
 import { Plus } from "lucide-react"
@@ -23,7 +22,6 @@ import { getUserAchievements } from "@/lib/achievements-data"
 import type { Collection } from "@/lib/collections-data"
 
 export default function ProfilePage() {
-  const { toast } = useToast()
   const router = useRouter()
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') || 'profile'; // Get tab from query or default to 'profile'
@@ -52,11 +50,6 @@ export default function ProfilePage() {
         const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
         
         if (userError || !user) {
-          toast({
-            title: "Error",
-            description: "Please log in to view your profile",
-            variant: "destructive",
-          })
           router.push("/login")
           return
         }
@@ -88,11 +81,6 @@ export default function ProfilePage() {
 
             if (createError) {
               console.error('Error creating profile:', createError.message)
-              toast({
-                title: "Error",
-                description: "Failed to create profile. Please try again.",
-                variant: "destructive",
-              })
               return
             }
 
@@ -107,11 +95,6 @@ export default function ProfilePage() {
             setSelectedAvatarUrl(newProfile.avatar_url || "/placeholder.svg")
           } else {
             console.error('Error loading profile:', profileError.message)
-            toast({
-              title: "Error",
-              description: "Failed to load profile. Please try again.",
-              variant: "destructive",
-            })
             return
           }
         } else {
@@ -146,10 +129,6 @@ export default function ProfilePage() {
 
         if (collectionsError) {
           console.error('Error loading collections:', collectionsError.message)
-          toast({
-            title: "Warning",
-            description: "Failed to load collections. Some features may be limited.",
-          })
         } else {
           // Transform the data to include movies array and proper date objects
           const collectionsWithMovies = userCollections?.map(collection => ({
@@ -191,10 +170,6 @@ export default function ProfilePage() {
               setRatedMovies([])
             } else {
               console.error('Error loading ratings:', ratingsError.message)
-              toast({
-                title: "Warning",
-                description: "Failed to load ratings. Some features may be limited.",
-              })
               setRatedMovies([])
             }
           } else {
@@ -225,10 +200,6 @@ export default function ProfilePage() {
               setDownloadedMovies([])
             } else {
               console.error('Error loading downloads:', downloadsError.message)
-              toast({
-                title: "Warning",
-                description: "Failed to load downloads. Some features may be limited.",
-              })
               setDownloadedMovies([])
             }
           } else {
@@ -242,29 +213,19 @@ export default function ProfilePage() {
 
       } catch (error) {
         console.error('Error:', error)
-        toast({
-          title: "Error",
-          description: "Failed to load profile data. Please try again.",
-          variant: "destructive",
-        })
       } finally {
         setIsLoading(false)
       }
     }
 
     loadUserData()
-  }, [toast, router])
+  }, [router])
 
   const handleSaveProfile = async () => {
     try {
       const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
       
       if (userError || !user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to update your profile",
-          variant: "destructive",
-        })
         return
       }
 
@@ -285,17 +246,8 @@ export default function ProfilePage() {
       }
 
       setIsEditing(false)
-      toast({
-        title: "Success",
-        description: "Your profile has been updated successfully.",
-      })
     } catch (error) {
       console.error('Error updating profile:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
-      })
     }
   }
 
@@ -314,17 +266,8 @@ export default function ProfilePage() {
       if (error) throw error
 
     setCollections(collections.filter((c) => c.id !== collection.id))
-    toast({
-        title: "Success",
-      description: `"${collection.name}" has been deleted.`,
-    })
     } catch (error) {
       console.error('Error deleting collection:', error)
-      toast({
-        title: "Error",
-        description: "Failed to delete collection",
-        variant: "destructive",
-      })
     }
   }
 
@@ -341,17 +284,8 @@ export default function ProfilePage() {
         c.id === collection.id ? { ...c, isPublic: !c.isPublic } : c
       ))
 
-    toast({
-        title: "Success",
-      description: `"${collection.name}" visibility has been updated.`,
-    })
     } catch (error) {
       console.error('Error updating collection visibility:', error)
-      toast({
-        title: "Error",
-        description: "Failed to update collection visibility",
-        variant: "destructive",
-      })
     }
   }
 
@@ -360,11 +294,6 @@ export default function ProfilePage() {
       const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
       
       if (userError || !user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to manage collections",
-          variant: "destructive",
-        })
         return
       }
 
@@ -397,12 +326,8 @@ export default function ProfilePage() {
             : c
         ))
 
-      toast({
-          title: "Success",
-        description: `"${collectionData.name}" has been updated.`,
-      })
-    } else {
-      // Create new collection
+      } else {
+        // Create new collection
         const { data, error } = await supabaseClient
           .from('collections')
           .insert({
@@ -421,21 +346,12 @@ export default function ProfilePage() {
         if (error) throw error
 
         setCollections([{ ...data, movies: [], createdAt: new Date(data.created_at), updatedAt: new Date(data.updated_at) }, ...collections])
-      toast({
-          title: "Success",
-          description: `"${data.name}" has been created.`,
-      })
-    }
+      }
 
     setEditingCollection(undefined)
       setIsCollectionDialogOpen(false)
     } catch (error) {
       console.error('Error saving collection:', error)
-      toast({
-        title: "Error",
-        description: "Failed to save collection",
-        variant: "destructive",
-      })
     }
   }
 

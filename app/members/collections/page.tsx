@@ -9,7 +9,6 @@ import { createSupabaseServerClient } from "@/lib/supabase";
 import type { Movie } from "@/lib/movie-data";
 import { CollectionDialog } from "@/components/collection-dialog";
 import { supabaseClient } from "@/lib/supabase";
-import { toast } from "@/components/ui/use-toast";
 
 export interface Collection {
   id: string;
@@ -37,11 +36,6 @@ export default function PublicCollectionsPage() {
       const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
       
       if (userError || !user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to manage collections",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -74,11 +68,7 @@ export default function PublicCollectionsPage() {
           : c
       ))
 
-    toast({
-        title: "Success",
-      description: `"${collectionData.name}" has been updated.`,
-    })
-  } else {
+    } else {
     // Create new collection
       const { data, error } = await supabaseClient
         .from('collections')
@@ -98,21 +88,12 @@ export default function PublicCollectionsPage() {
       if (error) throw error
 
       setCollections([{ ...data, movies: [], createdAt: new Date(data.created_at), updatedAt: new Date(data.updated_at) }, ...collections])
-    toast({
-        title: "Success",
-        description: `"${data.name}" has been created.`,
-    })
-  }
+    }
 
   setEditingCollection(undefined)
     setIsCollectionDialogOpen(false)
   } catch (error) {
     console.error('Error saving collection:', error)
-    toast({
-      title: "Error",
-      description: "Failed to save collection",
-      variant: "destructive",
-    })
   }
 };
 

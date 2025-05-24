@@ -1,5 +1,5 @@
 'use client';
-
+import { createSupabaseServerClient } from "@/lib/supabase";
 import { useState, useEffect } from "react";
 import React from "react";
 import { getMovieById, type Movie } from "@/lib/movie-data";
@@ -7,13 +7,11 @@ import { RatingStars } from "@/components/rating-stars";
 import { Button } from "@/components/ui/button";
 import { MovieSlider } from "@/components/movie-slider";
 import { Clock, Calendar, Globe, Subtitles, Share2, Plus } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
 import { useRouter } from "next/navigation";
 import { TrailerPlayer } from "@/components/trailer-player";
 import MovieCommentsClient from "@/components/MovieCommentsClient";
 import { YtsDownloads } from "@/components/yts-downloads";
 import { SimilarMovies } from "@/components/similar-movies";
-import { createSupabaseServerClient } from "@/lib/supabase";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabaseClient } from "@/lib/supabase";
 import { getLatestYtsMovies, getYtsMovieById, getYtsMovieByImdbId, type YtsMovie } from '@/lib/yts-api';
+import toast from "react-hot-toast";
 
 export interface DetailedMovie {
   id: string;
@@ -53,6 +52,7 @@ export interface DetailedMovie {
   userRating?: number;
   torrents?: {
     url: string;
+    hash: string;
     quality: string;
     size: string;
     seeds: number;
@@ -112,7 +112,6 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   const [error, setError] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [collections, setCollections] = useState<{ id: string; name: string }[]>([]);
-  const { toast } = useToast();
   const router = useRouter();
   const [isTrailerPlaying, setIsTrailerPlaying] = useState(false);
   const [omdbRatings, setOmdbRatings] = useState<OMDbRating[]>([]);
@@ -214,6 +213,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
               userRating: 0,
               torrents: ytsMovie.torrents.map(t => ({
                 url: t.url,
+                hash: t.hash,
                 quality: t.quality,
                 size: t.size,
                 seeds: t.seeds,
@@ -266,6 +266,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
               userRating: 0,
               torrents: ytsMovie.torrents.map(t => ({
                 url: t.url,
+                hash: t.hash,
                 quality: t.quality,
                 size: t.size,
                 seeds: t.seeds,
@@ -374,10 +375,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
 
   const handleRatingChange = async (rating: number) => {
     setUserRating(rating);
-    toast({
-      title: "Rating saved",
-      description: `You rated ${movie?.title} ${rating} stars.`,
-    });
+    toast.success(`You rated ${movie?.title} ${rating} stars.`);
 
     if (movie) {
       setMovie({ ...movie, userRating: rating });
@@ -390,13 +388,9 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
             user_id: user.id,
             movie_imdb_id: movie.id,
             rating,
-          }, { onConflict: ['user_id', 'movie_imdb_id'] });
-        if (error) {
-          toast({
-            title: "Error",
-            description: "Failed to save your rating.",
-            variant: "destructive",
           });
+        if (error) {
+          toast.error("Failed to save your rating.");
         } else {
           fetchAverageRating(movie.id);
         }
@@ -418,11 +412,8 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     window.open(`https://subdl.com/search/${imdbId}`, '_blank');
   };
 
-  const handleTorrentDownload = async (torrent: { url: string; quality: string; size: string; seeds: number; peers: number; }) => {
-    toast({
-      title: "Download started",
-      description: `Downloading ${movie?.title} in ${torrent.quality} (${torrent.size}).`,
-    });
+  const handleTorrentDownload = async (torrent: { url: string; hash: string; quality: string; size: string; seeds: number; peers: number; }) => {
+    toast.success(`Downloading ${movie?.title} in ${torrent.quality} (${torrent.size}).`);
     if (!movie) return;
     // Use the correct imdb_id for downloads
     const imdbId = (movie as any).imdb_id || movie.id;
@@ -437,11 +428,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
         });
       console.log('DOWNLOAD INSERT:', { error, data, userId: user.id, movieId: imdbId });
       if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to log download event.",
-          variant: "destructive",
-        });
+        toast.error("Failed to log download event.");
       }
     } else {
       console.log('No user found for download event.');
@@ -461,17 +448,10 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Movie added to collection successfully",
-      });
+      toast.success("Movie added to collection successfully");
     } catch (error) {
       console.error('Error adding movie to collection:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add movie to collection",
-        variant: "destructive",
-      });
+      toast.error("Failed to add movie to collection");
     }
   };
 
@@ -482,11 +462,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   // Placeholder for streaming function
   const handleStreamMovie = () => {
     if (!movie?.torrents || movie.torrents.length === 0) {
-      toast({
-        title: "Error",
-        description: "No torrents available for streaming.",
-        variant: "destructive",
-      });
+      toast.error("No torrents available for streaming.");
       return;
     }
 
@@ -496,10 +472,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     // Start fetching and streaming the torrent
     console.log("Stream button clicked. Torrents available:", movie.torrents);
 
-    toast({
-      title: "Streaming initiated",
-      description: "Attempting to stream the movie... (requires client-side implementation)",
-    });
+    toast.success("Streaming initiated");
   };
 
   if (isLoading) {
@@ -580,7 +553,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                 </DropdownMenuContent>
               </DropdownMenu>
               {/* Add Stream Button */}
-              <Button variant="primary" className="w-full gap-2" onClick={handleStreamMovie}>
+              <Button variant="default" className="w-full gap-2" onClick={handleStreamMovie}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 Stream Movie
               </Button>

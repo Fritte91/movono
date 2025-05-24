@@ -5,14 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { supabaseClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { useToast } from "@/components/ui/use-toast"
+import toast from "react-hot-toast"
 
 export function EmailConfirmation() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { toast } = useToast()
 
   useEffect(() => {
     const confirmEmail = async () => {
@@ -36,10 +35,7 @@ export function EmailConfirmation() {
           return
         }
 
-        toast({
-          title: "Email confirmed!",
-          description: "Your email has been verified successfully.",
-        })
+        toast.success("Your email has been verified successfully.")
 
         // Redirect to login after successful confirmation
         router.push('/login?confirmed=true')
@@ -52,7 +48,7 @@ export function EmailConfirmation() {
     }
 
     confirmEmail()
-  }, [router, searchParams, toast])
+  }, [router, searchParams])
 
   if (isLoading) {
     return (

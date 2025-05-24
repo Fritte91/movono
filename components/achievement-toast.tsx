@@ -12,13 +12,11 @@ interface AchievementToastProps {
 
 export function AchievementToast({ achievement }: AchievementToastProps) {
   return (
-    <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-lg border border-yellow-500/30">
-      <div className="p-2 bg-yellow-500/20 rounded-lg">
-        <Trophy className="w-6 h-6 text-yellow-500" />
-      </div>
+    <div className="flex items-center gap-3 bg-background border-[#3b82f6] p-4 rounded-lg shadow-lg">
+      <Trophy className="h-8 w-8 text-yellow-500" />
       <div>
-        <h4 className="font-medium text-yellow-500">Achievement Unlocked!</h4>
-        <p className="text-sm text-gray-300">{achievement.name}</p>
+        <h3 className="font-semibold text-foreground">Achievement Unlocked!</h3>
+        <p className="text-sm text-muted-foreground">{achievement.name}</p>
       </div>
     </div>
   );
@@ -26,11 +24,11 @@ export function AchievementToast({ achievement }: AchievementToastProps) {
 
 export function showAchievementToast(achievement: Achievement) {
   toast.custom(
-    (t) => (
+    (id) => (
       <div
         className={cn(
           "transform transition-all duration-300",
-          t.visible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
+          "translate-x-0 opacity-100"
         )}
       >
         <AchievementToast achievement={achievement} />

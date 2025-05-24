@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { supabaseClient } from '@/lib/supabase';
-import { useToast } from '@/components/ui/use-toast';
+import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,16 +29,11 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Comment cannot be empty',
-        variant: 'destructive',
-      });
+      toast.error('Comment cannot be empty');
       return;
     }
 
@@ -48,11 +43,7 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
       const { data: userData, error: userError } = await supabaseClient.auth.getUser();
 
       if (userError || !userData.user) {
-        toast({
-          title: 'Error',
-          description: 'You must be logged in to comment',
-          variant: 'destructive',
-        });
+        toast.error('You must be logged in to comment');
         setIsSubmitting(false);
         return;
       }
@@ -75,11 +66,7 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
 
         if (createProfileError) {
           console.error('Error creating profile:', createProfileError);
-          toast({
-            title: 'Error',
-            description: 'Failed to create user profile',
-            variant: 'destructive',
-          });
+          toast.error('Failed to create user profile');
           setIsSubmitting(false);
           return;
         }
@@ -102,11 +89,7 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
           code: insertError.code
         });
         
-        toast({
-          title: 'Error',
-          description: `Failed to post comment: ${insertError.message}`,
-          variant: 'destructive',
-        });
+        toast.error(`Failed to post comment: ${insertError.message}`);
         setIsSubmitting(false);
         return;
       }
@@ -130,11 +113,7 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
 
       if (fetchError) {
         console.error('Error fetching updated comments:', fetchError);
-        toast({
-          title: 'Error',
-          description: 'Comment posted but failed to refresh comments',
-          variant: 'destructive',
-        });
+        toast.error('Comment posted but failed to refresh comments');
         setIsSubmitting(false);
         return;
       }
@@ -144,18 +123,12 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
       setNewComment('');
       setIsSubmitting(false);
       
-      toast({
-        title: 'Success',
-        description: 'Your comment has been posted successfully',
+      toast.success('Your comment has been posted successfully', {
         duration: 3000,
       });
     } catch (err) {
       console.error('Unexpected error:', err);
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
-        variant: 'destructive',
-      });
+      toast.error('An unexpected error occurred');
       setIsSubmitting(false);
     }
   };

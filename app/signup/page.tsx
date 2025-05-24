@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Film, UserPlus, Loader2 } from "lucide-react"
-import { useToast } from "@/components/ui/use-toast"
+import toast from "react-hot-toast"
 
 const signupSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -23,7 +23,6 @@ type SignUpFormData = z.infer<typeof signupSchema>
 
 export default function SignUp() {
   const router = useRouter()
-  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   
   const {
@@ -69,19 +68,12 @@ export default function SignUp() {
         throw new Error('No user data returned from signup')
       }
 
-      toast({
-        title: "Account created!",
-        description: "Please check your email to confirm your account.",
-      })
+      toast.success("Account created! Please check your email to confirm your account.")
 
       router.push('/login?message=Account created successfully')
     } catch (err: any) {
       console.error('Signup error:', err)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: err.message || "An error occurred during signup",
-      })
+      toast.error(err.message || "An error occurred during signup")
     } finally {
       setIsLoading(false)
     }

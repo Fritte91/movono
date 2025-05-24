@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Film, LogIn, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useToast } from "@/components/ui/use-toast"
+import toast from "react-hot-toast"
 import { supabase } from "@/lib/supabase-client"
 
 const loginSchema = z.object({
@@ -24,7 +24,6 @@ type LoginFormData = z.infer<typeof loginSchema>
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const { toast } = useToast()
 
   const {
     register,
@@ -47,20 +46,13 @@ export default function LoginPage() {
         throw error
       }
 
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully logged in.",
-      })
+      toast.success("You've successfully logged in.")
 
       router.refresh()
       router.push('/members')
     } catch (error: any) {
       console.error('Login error:', error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to log in. Please try again.",
-      })
+      toast.error(error.message || "Failed to log in. Please try again.")
     } finally {
       setIsLoading(false)
     }

@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import type { Collection } from "@/lib/collections-data"
-import { useToast } from "@/components/ui/use-toast"
+import toast from "react-hot-toast"
 
 interface CollectionDialogProps {
   open: boolean
@@ -26,7 +26,6 @@ interface CollectionDialogProps {
 
 export function CollectionDialog({ open, onOpenChange, collection, onSave }: CollectionDialogProps) {
   const isEditing = !!collection
-  const { toast } = useToast()
 
   const [name, setName] = useState(collection?.name || "")
   const [description, setDescription] = useState(collection?.description || "")
@@ -37,11 +36,7 @@ export function CollectionDialog({ open, onOpenChange, collection, onSave }: Col
 
   const handleSave = () => {
     if (!name.trim()) {
-      toast({
-        title: "Collection name required",
-        description: "Please enter a name for your collection.",
-        variant: "destructive",
-      })
+      toast.error("Please enter a name for your collection.")
       return
     }
 

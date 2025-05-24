@@ -1,10 +1,7 @@
 import type React from "react"
-import { ThemeProvider } from "@/components/theme-provider"
 import { Inter } from "next/font/google"
 import "./globals.css"
-import { Toaster } from "@/components/ui/toaster"
-import { Analytics } from "@vercel/analytics/next"
-import { Providers } from "./providers"
+import { ClientProviders } from "./client-providers"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -33,13 +30,9 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/movono32.ico" />
       </head>
       <body className={`${inter.className} antialiased`}>
-        <Providers>
-          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
-            {children}
-            <Toaster />
-            <Analytics />
-          </ThemeProvider>
-        </Providers>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   )

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useToast } from "@/components/ui/use-toast"
+import toast from "react-hot-toast"
 
 interface Comment {
   id: string
@@ -24,7 +24,6 @@ interface MovieCommentsProps {
 export function MovieComments({ movieId, initialComments = [] }: MovieCommentsProps) {
   const [comments, setComments] = useState<Comment[]>(initialComments)
   const [newComment, setNewComment] = useState("")
-  const { toast } = useToast()
 
   const handleSubmitComment = () => {
     if (!newComment.trim()) return
@@ -42,10 +41,7 @@ export function MovieComments({ movieId, initialComments = [] }: MovieCommentsPr
     setComments([comment, ...comments])
     setNewComment("")
 
-    toast({
-      title: "Comment added",
-      description: "Your comment has been added successfully.",
-    })
+    toast.success("Your comment has been added successfully.")
   }
 
   return (

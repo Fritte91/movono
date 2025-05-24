@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Edit, Share2, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useToast } from "@/components/ui/use-toast";
 import { CollectionDialog } from "@/components/collection-dialog";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import type { Movie } from "@/lib/movie-data";
@@ -33,7 +32,6 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const { toast } = useToast();
 
   // Unwrap params using React.use
   const { id } = use(params);
@@ -50,21 +48,11 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
 
         if (error) {
           console.error('Error loading collection:', error.message);
-          toast({
-            title: "Error",
-            description: "Failed to load collection. Please try again.",
-            variant: "destructive",
-          });
           router.push("/members/profile?tab=collections");
           return;
         }
 
         if (!data) {
-          toast({
-            title: "Not Found",
-            description: "Collection not found.",
-            variant: "destructive",
-          });
           router.push("/members/profile?tab=collections");
           return;
         }
@@ -93,18 +81,13 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         setCollection(fetchedCollection);
       } catch (error) {
         console.error("Failed to load collection:", error);
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred. Please try again.",
-          variant: "destructive",
-        });
         router.push("/members/profile?tab=collections");
       } finally {
         setIsLoading(false);
       }
     }
     loadCollection();
-  }, [id, router, toast]);
+  }, [id, router]);
 
   const handleRemoveMovie = async (movieId: string) => {
     if (!collection) return;
@@ -124,25 +107,13 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         movies: collection.movies.filter(m => m.imdb_id !== movieId)
       });
 
-      toast({
-        title: "Success",
-        description: "Movie removed from collection",
-      });
     } catch (error) {
       console.error('Error removing movie:', error);
-      toast({
-        title: "Error",
-        description: "Failed to remove movie from collection",
-        variant: "destructive",
-      });
     }
   };
 
   const handleShare = () => {
-    toast({
-      title: "Link copied to clipboard",
-      description: "You can now share this collection with others.",
-    });
+    // Placeholder for the removed toast
   };
 
   const handleSaveCollection = async (collectionData: Partial<Collection>) => {
@@ -152,11 +123,6 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
       const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
       
       if (userError || !user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to manage collections",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -188,18 +154,8 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         gradientAngle: collectionData.gradientAngle || collection.gradientAngle,
       });
 
-      toast({
-        title: "Collection updated",
-        description: "Your collection has been updated successfully.",
-      });
-
     } catch (error) {
       console.error('Error saving collection:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save collection",
-        variant: "destructive",
-      });
     }
   };
 

@@ -1,10 +1,8 @@
 import type React from "react"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
-import { Toaster } from "@/components/ui/toaster"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Analytics } from "@vercel/analytics/next"
-
 
 export default function MembersLayout({
   children,
@@ -18,7 +16,6 @@ export default function MembersLayout({
       <Analytics />
       <SpeedInsights />
       <SiteFooter />
-      <Toaster />
     </div>
   )
 }

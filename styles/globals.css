@@ -92,3 +92,75 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes movono-toast-in {
+  0% { opacity: 0; transform: translateY(30px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes movono-toast-out {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(30px) scale(0.95); }
+}
+@keyframes movono-progress {
+  0% { width: 100%; }
+  100% { width: 0%; }
+}
+
+.animate-movono-toast {
+  animation: movono-toast-in 0.5s cubic-bezier(0.4,0,0.2,1) both;
+}
+.animate-movono-toast-leave {
+  animation: movono-toast-out 0.4s cubic-bezier(0.4,0,0.2,1) both;
+}
+.animate-movono-progress {
+  animation: movono-progress 5s linear forwards;
+}
+
+/* Sonner toast global override */
+.sonner-toast, .toaster .toast, .sonner .toast, .sonner-toast[data-theme], .toaster .toast[data-theme] {
+  background: #18181b !important;
+  color: #fff !important;
+  border: 2px solid #2563eb !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.25) !important;
+  animation: movono-toast-in 0.5s cubic-bezier(0.4,0,0.2,1) both;
+}
+
+.sonner-toast .sonner-progress-bar, .toaster .toast .sonner-progress-bar {
+  background: #2563eb !important;
+  height: 4px !important;
+  border-radius: 0 0 0.75rem 0.75rem !important;
+  animation: movono-progress 5s linear forwards !important;
+}
+
+[data-sonner-toast][data-theme] {
+  background: #18181b !important;
+  color: #fff !important;
+  border: 2px solid #2563eb !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.25) !important;
+  animation: movono-toast-in 0.5s cubic-bezier(0.4,0,0.2,1) both !important;
+  padding: 1rem 1.5rem !important;
+  font-size: 1rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.25rem !important;
+}
+[data-sonner-toast][data-theme] .movono-toast-description {
+  color: #cbd5e1 !important;
+}
+[data-sonner-toast][data-theme] .movono-toast-action,
+[data-sonner-toast][data-theme] .movono-toast-cancel {
+  background: #2563eb !important;
+  color: #fff !important;
+  border-radius: 0.5rem !important;
+  padding: 0.25rem 0.75rem !important;
+  margin-top: 0.5rem !important;
+}
+[data-sonner-toast][data-theme] .sonner-progress-bar {
+  background: #2563eb !important;
+  height: 4px !important;
+  border-radius: 0 0 0.75rem 0.75rem !important;
+  animation: movono-progress 5s linear forwards !important;
+  margin-top: 0.5rem !important;
+}
