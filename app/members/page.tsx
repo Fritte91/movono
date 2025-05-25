@@ -28,10 +28,14 @@ function mapTMDBMoviesToMovie(tmdbMovies: any[]): Movie[] {
     year: new Date(movie.release_date).getFullYear(),
     genre: movie.genre_ids.map((id: number) => TMDB_GENRES[id]).filter(Boolean),
     posterUrl: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.svg',
+    poster_url: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/placeholder.svg',
     director: '',
     cast: [],
+    actors: [],
+    writer: '',
     plot: movie.overview || '',
     runtime: 0,
+    released: movie.release_date,
     ratings: {
       imdb: movie.vote_average || 0,
       rottenTomatoes: '0',
@@ -40,7 +44,20 @@ function mapTMDBMoviesToMovie(tmdbMovies: any[]): Movie[] {
     language: [movie.original_language || 'en'],
     country: [],
     youtubeTrailerUrl: null,
-    torrents: []
+    torrents: [],
+    certification: '',
+    production_companies: [],
+    production_countries: [],
+    spoken_languages: [movie.original_language || 'en'],
+    awards: '',
+    metascore: 0,
+    imdbVotes: 0,
+    type: 'movie',
+    dvd: '',
+    boxOffice: '',
+    website: '',
+    response: true,
+    production: ''
   }));
 }
 
@@ -120,18 +137,38 @@ export default function Members() {
           getMoviesByCategory('coming_soon')
         ]);
 
-        const genreMoviesPromises = mainGenres.map(genre =>
-          fetchMoviesWithFilters({ 
+        // Create an array of possible sort options with correct types
+        const sortOptions = [
+          { sortBy: 'popularity' as const, sortOrder: 'desc' as const },
+          { sortBy: 'ratings->>imdb' as const, sortOrder: 'desc' as const },
+          { sortBy: 'year' as const, sortOrder: 'desc' as const },
+          { sortBy: 'vote_count' as const, sortOrder: 'desc' as const }
+        ];
+
+        const genreMoviesPromises = mainGenres.map(genre => {
+          // Get a random sort option
+          const randomSort = sortOptions[Math.floor(Math.random() * sortOptions.length)];
+          
+          // Generate a random offset between 0 and 200 for more variety
+          const randomOffset = Math.floor(Math.random() * 200);
+          
+          // Randomly adjust the year range to get more variety
+          const currentYear = new Date().getFullYear();
+          const randomYearRange = Math.floor(Math.random() * 3); // 0, 1, or 2
+          const minYear = currentYear - (20 + randomYearRange * 10); // 20, 30, or 40 years back
+          
+          return fetchMoviesWithFilters({ 
             genre,
-            minYear: 1990,
-            maxYear: 2025,
+            minYear,
+            maxYear: currentYear,
             minImdb: 5.0,
             minVoteCount: 50,
             minPopularity: 5,
-            sortBy: 'popularity',
-            limit: 20
-          })
-        );
+            ...randomSort,
+            limit: 20,
+            offset: randomOffset
+          });
+        });
         
         const genreMoviesResults = await Promise.all(genreMoviesPromises);
         const genreMovies = Object.fromEntries(
