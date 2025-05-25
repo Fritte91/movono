@@ -20,6 +20,7 @@ interface Movie {
   title: string;
   year: number;
   poster_url: string;
+  posterUrl?: string;
   imdb_id: string;
   genre: string[];
   ratings: {
@@ -45,36 +46,109 @@ interface Movie {
   website: string;
 }
 
+interface StoredMovieState {
+  genre: string;
+  page: number;
+  timestamp: number;
+}
+
+interface MovieFilterOptions {
+  genre?: string;
+  sortBy?: string;
+  limit?: number;
+}
+
 export default function MoviesPage() {
   const searchParams = useSearchParams();
   const genreParam = searchParams.get("genre");
 
-  const [selectedGenre, setSelectedGenre] = useState<string>(genreParam || "All");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedGenre, setSelectedGenre] = useState<string>(() => {
+    // Check localStorage first
+    const storedState = localStorage.getItem('movieListState');
+    if (storedState) {
+      const { genre, timestamp }: StoredMovieState = JSON.parse(storedState);
+      // Check if the stored state is less than 10 minutes old
+      if (Date.now() - timestamp < 10 * 60 * 1000) {
+        return genre;
+      }
+    }
+    // Fall back to URL param or default
+    return genreParam || "All";
+  });
+
+  const [currentPage, setCurrentPage] = useState(() => {
+    // Check localStorage first
+    const storedState = localStorage.getItem('movieListState');
+    if (storedState) {
+      const { page, timestamp }: StoredMovieState = JSON.parse(storedState);
+      // Check if the stored state is less than 10 minutes old
+      if (Date.now() - timestamp < 10 * 60 * 1000) {
+        return page;
+      }
+    }
+    return 1;
+  });
+
   const [allMovies, setAllMovies] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const moviesPerPage = 50;
+
+  // Function to store state in localStorage
+  const storeMovieState = (genre: string, page: number) => {
+    const state: StoredMovieState = {
+      genre,
+      page,
+      timestamp: Date.now()
+    };
+    localStorage.setItem('movieListState', JSON.stringify(state));
+  };
+
+  // Update stored state when genre or page changes
+  useEffect(() => {
+    storeMovieState(selectedGenre, currentPage);
+  }, [selectedGenre, currentPage]);
 
   useEffect(() => {
     async function fetchMovies() {
       setIsLoading(true);
       setError(null);
       try {
-        const movies = await getMoviesFromSupabase({
-          genre: selectedGenre !== "All" ? selectedGenre : undefined,
+        const filterOptions: MovieFilterOptions = {
           sortBy: "ratings->>imdb",
           limit: 500,
-        });
+        };
+        
+        if (selectedGenre !== "All") {
+          filterOptions.genre = selectedGenre;
+        }
+
+        const movies = await getMoviesFromSupabase(filterOptions);
+        
         // Map the movies to match our interface
         const mapped = (movies || [])
           .filter(movie => !!movie.imdb_id && !!movie.poster_url)
           .map((movie) => ({
             ...movie,
             posterUrl: movie.poster_url,
+            runtime: movie.runtime || 0,
+            released: movie.released || '',
+            director: movie.director || '',
+            writer: movie.writer || '',
+            actors: movie.actors || [],
+            plot: movie.plot || '',
+            language: movie.language || [],
+            country: movie.country || [],
+            awards: movie.awards || '',
+            metascore: movie.metascore || 0,
+            imdbVotes: movie.imdbVotes || 0,
+            type: movie.type || 'movie',
+            dvd: movie.dvd || '',
+            boxOffice: movie.boxOffice || '',
+            production: movie.production || '',
+            website: movie.website || ''
           }));
         setAllMovies(mapped);
-        setCurrentPage(1);
       } catch (err) {
         setError("Failed to load movies");
         setAllMovies([]);
@@ -156,7 +230,7 @@ export default function MoviesPage() {
                   <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
                     <div className="aspect-[2/3] relative">
                       <img
-                        src={movie.posterUrl || "/placeholder.svg"}
+                        src={movie.poster_url || "/placeholder.svg"}
                         alt={movie.title}
                         className="w-full h-full object-cover"
                       />
