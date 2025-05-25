@@ -153,7 +153,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
               if (imdbIdMatch && imdbIdMatch[0]) {
                 const imdbId = imdbIdMatch[0];
                 try {
-                  const omdbApiKey = 'e2253ed9'; // Hardcoded API key for testing
+                  const omdbApiKey = process.env.NEXT_PUBLIC_OMDB_API_KEY;
                   const omdbResponse = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${omdbApiKey}`);
                   const omdbData: OMDbMovie = await omdbResponse.json();
                   if (omdbData.Response === "True" && omdbData.Ratings) {
@@ -320,7 +320,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
           if (imdbIdMatch && imdbIdMatch[0]) {
             const imdbId = imdbIdMatch[0];
             try {
-              const omdbApiKey = 'e2253ed9'; // Hardcoded API key for testing
+              const omdbApiKey = process.env.NEXT_PUBLIC_OMDB_API_KEY;
               const omdbResponse = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${omdbApiKey}`);
               const omdbData: OMDbMovie = await omdbResponse.json();
               if (omdbData.Response === "True" && omdbData.Ratings) {

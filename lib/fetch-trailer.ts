@@ -1,5 +1,5 @@
 // lib/fetch-trailer.ts
-const TMDB_API_KEY = "765fa06e8b22a3e52c775f28eceef740"
+const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
 
 export async function fetchTrailerFromTmdbId(tmdbId: string): Promise<string | null> {
   const url = `https://api.themoviedb.org/3/movie/${tmdbId}/videos?api_key=${TMDB_API_KEY}&language=en-US`

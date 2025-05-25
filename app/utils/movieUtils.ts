@@ -2,7 +2,7 @@ export const fetchTrailerFromTmdbId = async (tmdbId: string): Promise<string | n
     console.log("Fetching trailer for TMDb ID:", tmdbId);
   
     try {
-      const TMDB_API_KEY = "765fa06e8b22a3e52c775f28eceef740"; // Replace with your TMDB API Key
+      const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
       const url = `https://api.themoviedb.org/3/movie/${tmdbId}/videos?api_key=${TMDB_API_KEY}&language=en-US`;
   
       const response = await fetch(url);
@@ -37,7 +37,7 @@ export const fetchTrailerFromTmdbId = async (tmdbId: string): Promise<string | n
   
   // A function to fetch TMDb movie data by movie ID
   async function fetchTmdbMovieData(tmdbId: string) {
-    const TMDB_API_KEY = "765fa06e8b22a3e52c775f28eceef740"; // Replace with your TMDB API Key
+    const TMDB_API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY;
     const url = `https://api.themoviedb.org/3/movie/${tmdbId}?api_key=${TMDB_API_KEY}&language=en-US`;
   
     try {

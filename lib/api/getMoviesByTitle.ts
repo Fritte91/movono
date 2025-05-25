@@ -3,7 +3,7 @@ import { getMovieByIdFromAPI } from "./getMovieById";
 import { Movie } from "../types";
 
 export async function getMoviesByTitle(titles: string[]): Promise<Movie[]> {
-  const apiKey = process.env.OMDB_API_KEY || "e2253ed9";
+  const apiKey = process.env.NEXT_PUBLIC_OMDB_API_KEY;
 
   try {
     const fetches = titles.map(async (title) => {
