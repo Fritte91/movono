@@ -55,6 +55,9 @@ export function SiteHeader() {
               <Link href="/members" className="text-lg font-medium hover:text-primary transition-colors">
                 Home
               </Link>
+              <Link href="/members/todays-pick" className="text-lg font-medium hover:text-primary transition-colors">
+                Today's Pick
+              </Link>
               <Link href="/members/movies" className="text-lg font-medium hover:text-primary transition-colors">
                 Movies
               </Link>
@@ -88,6 +91,9 @@ export function SiteHeader() {
         <nav className="hidden md:flex items-center gap-6 text-sm">
           <Link href="/members" className="font-medium transition-colors hover:text-primary">
             Home
+          </Link>
+          <Link href="/members/todays-pick" className="font-medium transition-colors hover:text-primary">
+            Today's Pick
           </Link>
           <Link href="/members/movies" className="font-medium transition-colors hover:text-primary">
             Movies
