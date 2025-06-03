@@ -19,6 +19,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'm.media-amazon.com', // Added this to allow Amazon images
       },
+      {
+        protocol: 'https',
+        hostname: 'imag.malavida.com',
+      },
     ],
     domains: ['witpoqobiuvhokyjopod.supabase.co', 'image.tmdb.org'],
   },

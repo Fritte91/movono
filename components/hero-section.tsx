@@ -50,21 +50,50 @@ export function HeroSection() {
           }
         }
 
-        // Get a random movie from movies_mini that has a backdrop_url
+        // Get high-quality movies from movies_mini that have a backdrop_url
         const { data, error } = await supabase
           .from('movies_mini')
-          .select('id, title, plot, genre, backdrop_url, imdb_id')
+          .select('id, title, plot, genre, backdrop_url, imdb_id, ratings, vote_count, popularity')
           .not('backdrop_url', 'is', null)
+          .gte('ratings->>imdb', 6.0) // Lowered the IMDB rating threshold
+          .gte('vote_count', 500) // Lowered the vote count threshold
+          .gte('popularity', 10) // Lowered the popularity threshold
           .order('ratings->>imdb', { ascending: false })
-          .limit(20);
+          .limit(50); // Increased the limit to have more options
 
         if (error) {
           console.error('Error fetching featured movie:', error);
           return;
         }
 
-        if (data && data.length > 0 && isMounted) {
-          // Select a random movie from the top 20
+        if (!data || data.length === 0) {
+          console.log('No movies found with current filters, trying without filters...');
+          // If no movies found with filters, try without them
+          const { data: unfilteredData, error: unfilteredError } = await supabase
+            .from('movies_mini')
+            .select('id, title, plot, genre, backdrop_url, imdb_id, ratings, vote_count, popularity')
+            .not('backdrop_url', 'is', null)
+            .limit(50);
+
+          if (unfilteredError) {
+            console.error('Error fetching unfiltered movies:', unfilteredError);
+            return;
+          }
+
+          if (unfilteredData && unfilteredData.length > 0 && isMounted) {
+            const randomIndex = Math.floor(Math.random() * unfilteredData.length);
+            const newMovie = unfilteredData[randomIndex];
+            
+            const movieData: StoredMovie = {
+              movie: newMovie,
+              timestamp: Date.now()
+            };
+            localStorage.setItem('featuredMovie', JSON.stringify(movieData));
+            
+            setSelectedMovie(newMovie);
+          }
+        } else if (data && data.length > 0 && isMounted) {
+          // Select a random movie from the filtered results
           const randomIndex = Math.floor(Math.random() * data.length);
           const newMovie = data[randomIndex];
           

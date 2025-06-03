@@ -21,6 +21,18 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
   const lastRefreshRef = useRef<number>(Date.now())
   const [currentMovies, setCurrentMovies] = useState<Movie[] | undefined>(movies)
   const [lastRefreshTime, setLastRefreshTime] = useState<string>('')
+  const [touchStart, setTouchStart] = useState<number | null>(null)
+  const [touchEnd, setTouchEnd] = useState<number | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [dragStartX, setDragStartX] = useState(0)
+  const [dragDistance, setDragDistance] = useState(0)
+  const [isMouseDown, setIsMouseDown] = useState(false)
+  const [startTranslateX, setStartTranslateX] = useState(0)
+  const [hasMoved, setHasMoved] = useState(false)
+  const dragStartTime = useRef<number>(0)
+
+  const minSwipeDistance = 50
+  const maxClickDuration = 200 // Maximum time in ms to consider it a click
 
   useEffect(() => {
     setCurrentMovies(movies)
@@ -111,6 +123,108 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
   const currentPage = Math.floor(currentIndex / visibleItems) + 1;
   const totalPages = Math.ceil(currentMovies.length / visibleItems);
 
+  const handleDragStart = (clientX: number) => {
+    setTouchStart(clientX)
+    setTouchEnd(clientX)
+    setIsDragging(true)
+    setDragStartX(clientX)
+    setStartTranslateX(currentIndex * (100 / visibleItems))
+    setHasMoved(false)
+    dragStartTime.current = Date.now()
+  }
+
+  const handleDragMove = (clientX: number) => {
+    if (!isDragging) return
+    
+    setTouchEnd(clientX)
+    const distance = clientX - dragStartX
+    // Convert pixel distance to percentage based on container width
+    const containerWidth = containerRef.current?.offsetWidth || 0
+    const percentageDistance = (distance / containerWidth) * 100
+    setDragDistance(percentageDistance)
+    
+    // If we've moved more than 5 pixels, consider it a drag
+    if (Math.abs(distance) > 5) {
+      setHasMoved(true)
+    }
+  }
+
+  const handleDragEnd = () => {
+    if (!touchStart || !touchEnd) return
+
+    const distance = touchStart - touchEnd
+    const containerWidth = containerRef.current?.offsetWidth || 0
+    const percentageDistance = Math.abs((distance / containerWidth) * 100)
+    
+    // Calculate how many items to move based on the drag distance
+    const itemsToMove = Math.round(percentageDistance / (100 / visibleItems))
+    
+    if (distance > minSwipeDistance) {
+      // Moving right (next)
+      setCurrentIndex(prev => 
+        Math.min(prev + itemsToMove, currentMovies?.length ? currentMovies.length - visibleItems : 0)
+      )
+    } else if (distance < -minSwipeDistance) {
+      // Moving left (previous)
+      setCurrentIndex(prev => Math.max(prev - itemsToMove, 0))
+    }
+
+    // Reset states
+    setTouchStart(null)
+    setTouchEnd(null)
+    setIsDragging(false)
+    setDragDistance(0)
+    setIsMouseDown(false)
+  }
+
+  // Touch event handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    handleDragStart(e.touches[0].clientX)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    handleDragMove(e.touches[0].clientX)
+  }
+
+  const handleTouchEnd = () => {
+    handleDragEnd()
+  }
+
+  // Mouse event handlers
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setIsMouseDown(true)
+    handleDragStart(e.clientX)
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isMouseDown) {
+      handleDragMove(e.clientX)
+    }
+  }
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (isMouseDown) {
+      e.preventDefault()
+      handleDragEnd()
+    }
+  }
+
+  const handleMouseLeave = () => {
+    if (isMouseDown) {
+      handleDragEnd()
+    }
+  }
+
+  // Prevent click events during drag
+  const handleClick = (e: React.MouseEvent) => {
+    const dragDuration = Date.now() - dragStartTime.current
+    if (isDragging || hasMoved || dragDuration > maxClickDuration) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }
+
   return (
     <div className="slider-container">
       <div className="flex items-center justify-between mb-4">
@@ -154,13 +268,20 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
 
       <div
         ref={containerRef}
-        className="flex transition-transform duration-500 ease-out"
+        className="flex transition-transform duration-300 ease-out cursor-grab active:cursor-grabbing select-none"
         style={{
-          transform: `translateX(-${currentIndex * (100 / visibleItems)}%)`,
+          transform: `translateX(calc(-${currentIndex * (100 / visibleItems)}% + ${dragDistance}%))`,
         }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
       >
         {safeMovies.map((movie) => {
-          
           const imgSrc = movie.poster_url && movie.poster_url !== "N/A" ? movie.poster_url : "/placeholder.svg";
           return (
             <div
@@ -168,7 +289,15 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
               className="flex-none p-2"
               style={{ width: `${100 / visibleItems}%` }}
             >
-              <Link href={`/members/movie/${movie.imdb_id}`}>
+              <Link 
+                href={`/members/movie/${movie.imdb_id}`}
+                onClick={(e) => {
+                  const dragDuration = Date.now() - dragStartTime.current
+                  if (isDragging || hasMoved || dragDuration > maxClickDuration) {
+                    e.preventDefault()
+                  }
+                }}
+              >
                 <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
                   <div className="aspect-[2/3] relative">
                     <img

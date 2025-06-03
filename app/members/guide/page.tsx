@@ -42,7 +42,7 @@ export default function GuidePage() {
                 </ul>
                 <div className="flex justify-center">
                   <img
-                    src="/placeholder.svg?height=400&width=600"
+                    src="/images/guide/qbittorrent-interface.jpg"
                     alt="qBittorrent Interface"
                     className="rounded-lg border border-border"
                   />
@@ -190,7 +190,7 @@ export default function GuidePage() {
                 </ol>
                 <div className="flex justify-center mt-6">
                   <img
-                    src="/placeholder.svg?height=400&width=600"
+                    src="/images/guide/qbittorrent-speed.jpg"
                     alt="qBittorrent Settings"
                     className="rounded-lg border border-border"
                   />
@@ -246,7 +246,7 @@ export default function GuidePage() {
                 </ol>
                 <div className="flex justify-center mt-6">
                   <img
-                    src="/placeholder.svg?height=400&width=600"
+                    src="/images/guide/qbittorrent-download.jpg"
                     alt="qBittorrent Download Process"
                     className="rounded-lg border border-border"
                   />
