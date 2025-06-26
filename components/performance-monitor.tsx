@@ -10,6 +10,13 @@ interface PerformanceMetrics {
   ttfb: number | null;
 }
 
+// Type for First Input Delay entries
+interface FirstInputEntry extends PerformanceEntry {
+  processingStart: number;
+  processingEnd: number;
+  target?: EventTarget;
+}
+
 export function PerformanceMonitor() {
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     fcp: null,
@@ -47,8 +54,10 @@ export function PerformanceMonitor() {
     const fidObserver = new PerformanceObserver((list) => {
       const entries = list.getEntries();
       entries.forEach((entry) => {
-        if (entry.processingStart && entry.startTime) {
-          const fid = entry.processingStart - entry.startTime;
+        // Type guard to check if entry has processingStart property
+        if ('processingStart' in entry && entry.processingStart && entry.startTime) {
+          const fidEntry = entry as FirstInputEntry;
+          const fid = fidEntry.processingStart - fidEntry.startTime;
           setMetrics(prev => ({ ...prev, fid }));
         }
       });

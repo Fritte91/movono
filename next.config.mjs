@@ -2,7 +2,6 @@
 const nextConfig = {
   // Enable experimental features for better performance
   experimental: {
-    optimizeCss: true,
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
     turbo: {
       rules: {
@@ -49,9 +48,6 @@ const nextConfig = {
 
   // Enable compression
   compress: true,
-
-  // Optimize bundle
-  swcMinify: true,
 
   // Add headers for better caching and performance
   async headers() {
@@ -147,9 +143,6 @@ const nextConfig = {
 
     return config;
   },
-
-  // Remove deprecated domains config
-  domains: undefined,
 }
 
 export default nextConfig
