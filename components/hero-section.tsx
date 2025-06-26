@@ -1,4 +1,3 @@
-// components/hero-section.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -21,14 +20,6 @@ interface StoredMovie {
   timestamp: number;
 }
 
-function isSupabaseError(obj: any): obj is { error: true } {
-  return obj && typeof obj === 'object' && 'error' in obj && obj.error === true;
-}
-
-function isValidMovie(movie: any): movie is FeaturedMovie {
-  return movie && typeof movie.id === 'string' && typeof movie.title === 'string' && typeof movie.plot === 'string' && Array.isArray(movie.genre) && typeof movie.backdrop_url === 'string' && typeof movie.imdb_id === 'string';
-}
-
 export function HeroSection() {
   const [selectedMovie, setSelectedMovie] = useState<FeaturedMovie | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +29,8 @@ export function HeroSection() {
 
     async function fetchFeaturedMovie() {
       try {
+        console.log('Fetching featured movie...');
+        
         // Check if we have a stored movie that's still valid (less than 30 minutes old)
         const storedMovieData = localStorage.getItem('featuredMovie');
         if (storedMovieData) {
@@ -53,58 +46,64 @@ export function HeroSection() {
           }
         }
 
-        // Get high-quality movies from movies_mini that have a backdrop_url
-        const { data, error } = await supabase
+        // Get a simple count first
+        const { count } = await supabase
           .from('movies_mini')
-          .select('id, title, plot, genre, backdrop_url, imdb_id, ratings, vote_count, popularity')
+          .select('*', { count: 'exact', head: true });
+
+        console.log(`Total movies in movies_mini table: ${count}`);
+
+        // Try to get movies with backdrop_url
+        let { data, error } = await supabase
+          .from('movies_mini')
+          .select('id, title, plot, genre, backdrop_url, imdb_id')
           .not('backdrop_url', 'is', null)
-          .gte('ratings->>imdb', 6.0) // Lowered the IMDB rating threshold
-          .gte('vote_count', 500) // Lowered the vote count threshold
-          .gte('popularity', 10) // Lowered the popularity threshold
-          .order('ratings->>imdb', { ascending: false })
-          .limit(50); // Increased the limit to have more options
+          .not('backdrop_url', 'eq', '')
+          .limit(50);
 
         if (error) {
-          console.error('Error fetching featured movie:', error);
+          console.error('Error fetching movies with backdrop:', error);
+          // Try without backdrop filter
+          const result = await supabase
+            .from('movies_mini')
+            .select('id, title, plot, genre, backdrop_url, imdb_id')
+            .limit(50);
+          
+          data = result.data;
+          error = result.error;
+        }
+
+        if (error) {
+          console.error('Error fetching movies:', error);
           return;
         }
 
-        if (Array.isArray(data) && data.length === 0) {
-          // If no movies found with filters, try without them
-          const { data: unfilteredData, error: unfilteredError } = await supabase
-            .from('movies_mini')
-            .select('id, title, plot, genre, backdrop_url, imdb_id, ratings, vote_count, popularity')
-            .not('backdrop_url', 'is', null)
-            .limit(50);
+        console.log(`Found ${data?.length || 0} movies`);
 
-          if (unfilteredError) {
-            console.error('Error fetching unfiltered movies:', unfilteredError);
-            return;
-          }
-
-          if (Array.isArray(unfilteredData) && unfilteredData.length > 0 && isMounted && !isSupabaseError(unfilteredData)) {
-            const randomIndex = Math.floor(Math.random() * unfilteredData.length);
-            const newMovie = unfilteredData[randomIndex];
-            if (isValidMovie(newMovie)) {
-              const movieData: StoredMovie = {
-                movie: newMovie,
-                timestamp: Date.now()
-              };
-              localStorage.setItem('featuredMovie', JSON.stringify(movieData));
-              setSelectedMovie(newMovie);
-            }
-          }
-        } else if (Array.isArray(data) && data.length > 0 && isMounted && !isSupabaseError(data)) {
-          // Select a random movie from the filtered results
+        if (data && data.length > 0 && isMounted) {
+          // Select a random movie
           const randomIndex = Math.floor(Math.random() * data.length);
-          const newMovie = data[randomIndex];
-          if (isValidMovie(newMovie)) {
+          const movie = data[randomIndex] as any;
+          
+          // Validate the movie has required fields
+          if (movie && movie.id && movie.title && movie.plot && movie.genre && movie.imdb_id) {
+            const featuredMovie: FeaturedMovie = {
+              id: movie.id,
+              title: movie.title,
+              plot: movie.plot,
+              genre: Array.isArray(movie.genre) ? movie.genre : [],
+              backdrop_url: movie.backdrop_url || '/cinema1.jpg',
+              imdb_id: movie.imdb_id
+            };
+            
             const movieData: StoredMovie = {
-              movie: newMovie,
+              movie: featuredMovie,
               timestamp: Date.now()
             };
             localStorage.setItem('featuredMovie', JSON.stringify(movieData));
-            setSelectedMovie(newMovie);
+            setSelectedMovie(featuredMovie);
+          } else {
+            console.log('Selected movie is missing required fields:', movie);
           }
         }
       } catch (error) {
@@ -118,11 +117,10 @@ export function HeroSection() {
 
     fetchFeaturedMovie();
 
-    // Cleanup function
     return () => {
       isMounted = false;
     };
-  }, []); // Empty dependency array since we're using localStorage
+  }, []);
 
   if (isLoading) {
     return <div className="h-[50vh] flex items-center justify-center">Loading...</div>;
@@ -186,4 +184,4 @@ export function HeroSection() {
       </div>
     </section>
   );
-}
+} 

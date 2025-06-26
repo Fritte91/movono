@@ -46,7 +46,6 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
             *,
             collection_movies!collection_movies_collection_id_fkey(
               movie_imdb_id,
-              movies!inner(id, title, poster_url, year, imdb_id),
               movies_mini!inner(imdb_id, title, poster_url, year)
             )
           `)
@@ -87,7 +86,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           // Extract movie data from both movies and movies_mini tables
           movies: safeData.collection_movies?.map((cm: any) => {
             // Use data from movies table if available, otherwise use movies_mini
-            const movieData = cm.movies || cm.movies_mini;
+            const movieData = cm.movies_mini;
             if (!movieData?.imdb_id || !movieData?.title) return null;
             return {
               id: movieData.imdb_id,

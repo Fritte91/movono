@@ -59,12 +59,6 @@ export function TodayPick() {
   if (loading) {
     return (
       <div className="container py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">Today's Pick</h2>
-            <p className="text-muted-foreground">Handpicked movies for you today</p>
-          </div>
-        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} className="aspect-[2/3] bg-muted animate-pulse rounded-lg" />
@@ -77,12 +71,6 @@ export function TodayPick() {
   if (movies.length === 0) {
     return (
       <div className="container py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">Today's Pick</h2>
-            <p className="text-muted-foreground">Handpicked movies for you today</p>
-          </div>
-        </div>
         <div className="text-center py-12 bg-card border border-border rounded-lg">
           <div className="text-4xl mb-4">🎬</div>
           <h3 className="text-lg font-medium mb-2">No Movies Available</h3>
@@ -94,12 +82,6 @@ export function TodayPick() {
 
   return (
     <div className="container py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold">Today's Pick</h2>
-          <p className="text-muted-foreground">Handpicked movies for you today</p>
-        </div>
-      </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
         {movies.map((movie) => (
           <a

@@ -108,6 +108,9 @@ export default function MoviesPage() {
     storeMovieState(selectedGenre, currentPage);
   }, [selectedGenre, currentPage]);
 
+  // Add state for fallback
+  const [showGenreFallback, setShowGenreFallback] = useState(false);
+
   useEffect(() => {
     async function fetchMovies() {
       setIsLoading(true);
@@ -123,36 +126,27 @@ export default function MoviesPage() {
         }
 
         const movies = await getMoviesFromSupabase(filterOptions);
-        
-        // Map the movies to match our interface
-        const mapped: Movie[] = (movies as any[] || [])
-          .filter(movie => !!movie.imdb_id && !!movie.posterUrl)
-          .map((movie: any) => ({
-            id: movie.imdb_id,
-            title: movie.title,
-            year: movie.year,
-            posterUrl: movie.posterUrl,
-            imdb_id: movie.imdb_id,
-            genre: movie.genre || [],
-            ratings: movie.ratings || { imdb: 0, rottenTomatoes: 'N/A', metacritic: 0 },
-            runtime: 0,
-            released: '',
-            director: '',
-            writer: '',
-            actors: [],
-            plot: '',
-            language: [],
-            country: [],
-            awards: '',
-            metascore: 0,
-            imdbVotes: 0,
-            type: 'movie',
-            dvd: '',
-            boxOffice: '',
-            production: '',
-            website: ''
-          }));
-        setAllMovies(mapped);
+        console.log('Raw movies from Supabase:', movies);
+        let fallbackUsed = false;
+        // If no movies found for genre, fallback to all
+        if (selectedGenre !== "All" && (!movies || movies.length === 0)) {
+          fallbackUsed = true;
+          filterOptions.genre = undefined;
+          const allMovies = await getMoviesFromSupabase(filterOptions);
+          console.log('Fallback: all movies from Supabase:', allMovies);
+          setAllMovies((allMovies as any[] || []).map((movie: any) => ({
+            ...movie,
+            posterUrl: movie.poster_url || movie.posterUrl || '/placeholder.svg',
+            genre: Array.isArray(movie.genre) ? movie.genre : (typeof movie.genre === 'string' ? [movie.genre] : []),
+          })).filter(movie => !!movie.imdb_id && !!movie.title));
+        } else {
+          setAllMovies((movies as any[] || []).map((movie: any) => ({
+            ...movie,
+            posterUrl: movie.poster_url || movie.posterUrl || '/placeholder.svg',
+            genre: Array.isArray(movie.genre) ? movie.genre : (typeof movie.genre === 'string' ? [movie.genre] : []),
+          })).filter(movie => !!movie.imdb_id && !!movie.title));
+        }
+        setShowGenreFallback(fallbackUsed);
       } catch (err) {
         setError("Failed to load movies");
         setAllMovies([]);
@@ -223,7 +217,11 @@ export default function MoviesPage() {
           </Select>
         </div>
       </div>
-
+      {showGenreFallback && (
+        <div className="mb-4 p-4 bg-yellow-900/30 text-yellow-300 rounded">
+          No movies found for the selected genre. Showing all movies instead.
+        </div>
+      )}
       {currentMovies.length > 0 ? (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">

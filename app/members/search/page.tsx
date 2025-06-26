@@ -70,38 +70,18 @@ export default function SearchPage() {
     if (genre && genre !== "any") filters.genre = genre
     if (language && language !== "any") filters.language = language
 
-    // Build Supabase query
-    const supabaseFilters: any = {
-      sortBy: "ratings->>imdb",
-      limit: 100,
-    }
-    let customFilter = (q: any) => q
-    if (filters.title) {
-      customFilter = (q: any) => q.ilike("title", `%${filters.title}%`)
-    }
-    if (filters.year) {
-      customFilter = ((prev) => (q: any) => prev(q).eq("year", filters.year))(customFilter)
-    }
-    if (filters.genre) {
-      customFilter = ((prev) => (q: any) => prev(q).contains("genre", [filters.genre]))(customFilter)
-    }
-    if (filters.language) {
-      customFilter = ((prev) => (q: any) => prev(q).contains("language", [filters.language]))(customFilter)
-    }
-
-    // Use a custom version of getMoviesFromSupabase that allows customFilter
-    const { createClient } = await import("@supabase/supabase-js")
-    const supabaseUrl = 'https://witpoqobiuvhokyjopod.supabase.co'
-    const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpdHBvcW9iaXV2aG9reWpvcG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc2Mjg1NDYsImV4cCI6MjA2MzIwNDU0Nn0.-a_2H_9eJP3lPMOcaK19kWVGrVhzGnhzqmggY9my9RQ'
-    const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
     try {
       // Search in both tables
       const [miniResults, moviesResults] = await Promise.all([
         // Query movies_mini table
         (async () => {
           let queryBuilder = supabase.from("movies_mini").select("*")
-          queryBuilder = customFilter(queryBuilder)
+          if (filters.title) {
+            queryBuilder = queryBuilder.or(`title.ilike.%${filters.title}%,director.ilike.%${filters.title}%,plot.ilike.%${filters.title}%`)
+          }
+          if (filters.year) queryBuilder = queryBuilder.eq("year", filters.year)
+          if (filters.genre) queryBuilder = queryBuilder.contains("genres", [filters.genre])
+          if (filters.language) queryBuilder = queryBuilder.eq("language", filters.language)
           queryBuilder = queryBuilder.order("ratings->>imdb", { ascending: false }).limit(100)
           const { data, error } = await queryBuilder
           if (error) {
@@ -110,6 +90,10 @@ export default function SearchPage() {
           }
           return (data || []).map((movie: any) => ({
             ...movie,
+            imdb_id: movie.imdb_id,
+            title: movie.title,
+            posterUrl: movie.poster_url || '/placeholder.svg',
+            genre: Array.isArray(movie.genres) ? movie.genres : (typeof movie.genres === 'string' ? [movie.genres] : []),
             id_type: 'imdb',
             unique_id: movie.imdb_id
           }))
@@ -117,7 +101,12 @@ export default function SearchPage() {
         // Query movies table
         (async () => {
           let queryBuilder = supabase.from("movies").select("*")
-          queryBuilder = customFilter(queryBuilder)
+          if (filters.title) {
+            queryBuilder = queryBuilder.or(`title.ilike.%${filters.title}%,director.ilike.%${filters.title}%,plot.ilike.%${filters.title}%`)
+          }
+          if (filters.year) queryBuilder = queryBuilder.eq("year", filters.year)
+          if (filters.genre) queryBuilder = queryBuilder.contains("genres", [filters.genre])
+          if (filters.language) queryBuilder = queryBuilder.eq("language", filters.language)
           queryBuilder = queryBuilder.order("ratings->>imdb", { ascending: false }).limit(100)
           const { data, error } = await queryBuilder
           if (error) {
@@ -126,31 +115,27 @@ export default function SearchPage() {
           }
           return (data || []).map((movie: any) => ({
             ...movie,
+            imdb_id: movie.imdb_id || movie.id,
+            title: movie.title,
+            posterUrl: movie.poster_url || movie.posterUrl || movie.backdropUrl || '/placeholder.svg',
+            genre: Array.isArray(movie.genres) ? movie.genres : (typeof movie.genres === 'string' ? [movie.genres] : []),
             id_type: 'imdb',
-            unique_id: movie.id, // Use id as imdb_id
-            imdb_id: movie.id, // Map id to imdb_id for compatibility
-            posterUrl: movie.posterUrl || movie.backdropUrl // Use backdropUrl as fallback
+            unique_id: movie.imdb_id || movie.id
           }))
         })()
       ])
 
       // Process and combine results
       const allResults = [...miniResults, ...moviesResults]
-        .filter((movie: any) => !!movie.unique_id && !!movie.posterUrl)
-
-      const mapped = allResults.map((movie: any) => ({
-        ...movie,
-        imdb_id: movie.unique_id, // Use unique_id for both tables
-        posterUrl: movie.posterUrl,
-      }))
+        .filter((movie: any) => !!movie.unique_id && !!movie.title)
 
       // Deduplicate based on unique_id
       const uniqueResults = Array.from(
-        new Map(mapped.map(movie => [movie.unique_id, movie])).values()
+        new Map(allResults.map(movie => [movie.unique_id, movie])).values()
       )
 
       // Sort by IMDB rating
-      const sortedResults = uniqueResults.sort((a, b) => 
+      const sortedResults = uniqueResults.sort((a, b) =>
         (b.ratings?.imdb || 0) - (a.ratings?.imdb || 0)
       )
 
