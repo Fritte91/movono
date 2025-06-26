@@ -164,7 +164,14 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                 .select('id, name')
                 .eq('user_id', user.id)
                 .order('name');
-              setCollections(userCollections || []);
+              if (Array.isArray(userCollections)) {
+                const validCollections = (userCollections as any[]).filter(
+                  (c) => c && typeof c === 'object' && typeof c.id === 'string' && typeof c.name === 'string'
+                );
+                setCollections(validCollections);
+              } else {
+                setCollections([]);
+              }
             }
             // Fetch OMDb ratings if movie data is available and has an IMDb ID (part of the movie.id)
             if (fetchedMovie && fetchedMovie.id) {
@@ -332,8 +339,13 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
       return;
     }
     if (data && data.length > 0) {
-      const avg = data.reduce((sum, r) => sum + r.rating, 0) / data.length;
-      setAverageRating(avg);
+      const validRatings = (data as any[]).filter((r) => r && typeof r === 'object' && typeof r.rating === 'number');
+      if (validRatings.length > 0) {
+        const avg = validRatings.reduce((sum, r) => sum + r.rating, 0) / validRatings.length;
+        setAverageRating(avg);
+      } else {
+        setAverageRating(null);
+      }
     } else {
       setAverageRating(null);
     }
