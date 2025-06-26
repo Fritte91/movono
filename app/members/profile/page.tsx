@@ -323,7 +323,26 @@ export default function ProfilePage() {
 
         if (error) throw error
 
-        setCollections([{ ...data, movies: [], createdAt: new Date(data.created_at), updatedAt: new Date(data.updated_at) }, ...collections])
+        if (data && typeof data === 'object') {
+          const d: any = data;
+          setCollections([
+            {
+              id: d.id,
+              name: d.name,
+              description: d.description,
+              coverImage: d.cover_image,
+              isPublic: d.is_public,
+              createdAt: d.created_at ? new Date(d.created_at) : new Date(),
+              updatedAt: d.updated_at ? new Date(d.updated_at) : new Date(),
+              userId: d.user_id,
+              movies: [],
+              gradientColor1: d.gradient_color1,
+              gradientColor2: d.gradient_color2,
+              gradientAngle: d.gradient_angle,
+            },
+            ...((Array.isArray(collections) ? collections : []))
+          ]);
+        }
       }
 
     setEditingCollection(undefined)
