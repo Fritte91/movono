@@ -126,27 +126,33 @@ export default function MoviesPage() {
         const movies = await getMoviesFromSupabase(filterOptions);
         
         // Map the movies to match our interface
-        const mapped = (movies || [])
+        const mapped: Movie[] = (movies || [])
           .filter(movie => !!movie.imdb_id && !!movie.poster_url)
-          .map((movie) => ({
-            ...movie,
+          .map((movie: any) => ({
+            id: movie.imdb_id,
+            title: movie.title,
+            year: movie.year,
+            poster_url: movie.poster_url,
             posterUrl: movie.poster_url,
-            runtime: movie.runtime || 0,
-            released: movie.released || '',
-            director: movie.director || '',
-            writer: movie.writer || '',
-            actors: movie.actors || [],
-            plot: movie.plot || '',
-            language: movie.language || [],
-            country: movie.country || [],
-            awards: movie.awards || '',
-            metascore: movie.metascore || 0,
-            imdbVotes: movie.imdbVotes || 0,
-            type: movie.type || 'movie',
-            dvd: movie.dvd || '',
-            boxOffice: movie.boxOffice || '',
-            production: movie.production || '',
-            website: movie.website || ''
+            imdb_id: movie.imdb_id,
+            genre: movie.genre || [],
+            ratings: movie.ratings || { imdb: 0, rottenTomatoes: 'N/A', metacritic: 0 },
+            runtime: 0,
+            released: '',
+            director: '',
+            writer: '',
+            actors: [],
+            plot: '',
+            language: [],
+            country: [],
+            awards: '',
+            metascore: 0,
+            imdbVotes: 0,
+            type: 'movie',
+            dvd: '',
+            boxOffice: '',
+            production: '',
+            website: ''
           }));
         setAllMovies(mapped);
       } catch (err) {
@@ -224,27 +230,19 @@ export default function MoviesPage() {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {currentMovies.map((movie) => {
-              console.log('Slider movie:', movie);
               return (
                 <Link key={movie.imdb_id} href={`/members/movie/${movie.imdb_id}`} className="group">
-                  <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
-                    <div className="aspect-[2/3] relative">
-                      <img
-                        src={movie.poster_url || "/placeholder.svg"}
-                        alt={movie.title}
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300">
-                        <Button variant="secondary" size="sm">
-                          View Details
-                        </Button>
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                        <div className="text-sm font-medium truncate">{movie.title}</div>
-                        <div className="text-xs text-gray-400">{movie.year}</div>
-                        <div className="text-xs text-gray-400">{movie.ratings?.imdb || "N/A"}/10</div>
-                      </div>
-                    </div>
+                  <div className="relative aspect-[2/3] overflow-hidden rounded-lg">
+                    <img
+                      src={movie.poster_url}
+                      alt={movie.title}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    <h3 className="font-medium text-sm line-clamp-2">{movie.title}</h3>
+                    <p className="text-xs text-muted-foreground">{movie.year}</p>
                   </div>
                 </Link>
               );

@@ -27,9 +27,43 @@ export function YtsDownloads({ imdbId, title, handleTorrentDownload }: { imdbId:
     async function fetchTorrents() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/yts?imdbId=${imdbId}`);
+        // First, try to get torrents from the database (if movie was already fetched before)
+        const dbResponse = await fetch(`/api/movie/${imdbId}`);
+        if (dbResponse.ok) {
+          const dbData = await dbResponse.json();
+          if (dbData.movie && dbData.movie.torrents && dbData.movie.torrents.length > 0) {
+            setTorrents(dbData.movie.torrents);
+            setLoading(false);
+            return;
+          }
+        }
+
+        // If no torrents in DB, fetch from YTS
+        const res = await fetch(`/api/yts?imdb_id=${imdbId}`);
         const data = await res.json();
-        setTorrents(data.torrents || []);
+        
+        if (data.torrents && data.torrents.length > 0) {
+          setTorrents(data.torrents);
+          
+          // Save torrent data to database
+          try {
+            await fetch('/api/sync-movies', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                syncType: 'update_torrents',
+                imdbId: imdbId,
+                torrents: data.torrents
+              })
+            });
+          } catch (error) {
+            // Silently fail - this is just for enriching the database
+          }
+        } else {
+          setTorrents([]);
+        }
       } catch (err) {
         setTorrents([]);
       }

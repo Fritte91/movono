@@ -1,5 +1,4 @@
 'use client';
-import { createSupabaseServerClient } from "@/lib/supabase";
 import { useState, useEffect } from "react";
 import React from "react";
 import { getMovieById, type Movie } from "@/lib/movie-data";
@@ -18,9 +17,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { supabaseClient } from "@/lib/supabase";
 import { getLatestYtsMovies, getYtsMovieById, getYtsMovieByImdbId, type YtsMovie } from '@/lib/yts-api';
+import { getMovieFromTmdbById } from '@/lib/api/tmdb';
 import toast from "react-hot-toast";
+import { supabase } from '@/lib/supabase-client';
 
 export interface DetailedMovie {
   id: string;
@@ -81,7 +81,6 @@ interface OMDbMovie {
 }
 
 async function fetchComments(movieId: string): Promise<Comment[]> {
-  const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
     .from('comments')
     .select(`
@@ -90,10 +89,7 @@ async function fetchComments(movieId: string): Promise<Comment[]> {
       user_id,
       content,
       created_at,
-      profiles (
-        username,
-        avatar_url
-      )
+      profiles ( username )
     `)
     .eq('movie_id', movieId)
     .order('created_at', { ascending: false });
@@ -102,7 +98,15 @@ async function fetchComments(movieId: string): Promise<Comment[]> {
     console.error('Error fetching comments:', error);
     return [];
   }
-  return data || [];
+  // Map the joined profile data to the Comment interface
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    movie_id: row.movie_id,
+    user_id: row.user_id,
+    username: row.profiles?.username || 'Unknown',
+    content: row.content,
+    created_at: row.created_at,
+  }));
 }
 
 export default function MoviePage({ params }: { params: Promise<{ id: string }> }) {
@@ -125,6 +129,24 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
       setIsLoading(true);
       setError(null);
       try {
+        // Handle TMDB IDs (from coming soon slider)
+        if (id.startsWith('tmdb-')) {
+          const tmdbId = parseInt(id.replace('tmdb-', ''));
+          const tmdbMovie = await getMovieFromTmdbById(tmdbId);
+          if (tmdbMovie) {
+            setMovie(tmdbMovie);
+            setUserRating(0);
+            setComments([]);
+            setCollections([]);
+            setIsLoading(false);
+            return;
+          } else {
+            setError('TMDB Movie not found');
+            setIsLoading(false);
+            return;
+          }
+        }
+
         // If the ID is an IMDb ID (tt...), try DB first, then YTS
         if (/^tt\d+$/.test(id)) {
           // Try to fetch from your DB
@@ -135,14 +157,13 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
             // Fetch comments, collections, OMDb, etc. as before
             const fetchedComments = await fetchComments(id);
             setComments(fetchedComments);
-            const { data: { user } } = await supabaseClient.auth.getUser();
+            const { data: { user } } = await supabase.auth.getUser();
             if (user) {
-              const { data: userCollections } = await supabaseClient
+              const { data: userCollections } = await supabase
                 .from('collections')
                 .select('id, name')
                 .eq('user_id', user.id)
                 .order('name');
-              console.log('Fetched collections:', userCollections); // Debugging
               setCollections(userCollections || []);
             }
             // Fetch OMDb ratings if movie data is available and has an IMDb ID (part of the movie.id)
@@ -285,65 +306,10 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
             return;
           }
         }
-        // Fetch movie
-        const fetchedMovie = await getMovieById(id);
-        if (fetchedMovie) {
-          setMovie(fetchedMovie);
-          setUserRating(fetchedMovie.userRating || 0);
-        } else {
-          setError("Movie not found");
-          router.push("/members");
-          return;
-        }
-
-        // Fetch comments
-        const fetchedComments = await fetchComments(id);
-        setComments(fetchedComments);
-
-        // Fetch user's collections
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if (user) {
-          const { data: userCollections } = await supabaseClient
-            .from('collections')
-            .select('id, name')
-            .eq('user_id', user.id)
-            .order('name');
-          console.log('Fetched collections:', userCollections); // Debugging
-          setCollections(userCollections || []);
-        }
-
-        // Fetch OMDb ratings if movie data is available and has an IMDb ID (part of the movie.id)
-        if (fetchedMovie && fetchedMovie.id) {
-          // Extract IMDb ID (assuming it's part of the movie.id or can be derived)
-          // You might need to adjust this logic based on how your movie.id is structured
-          const imdbIdMatch = fetchedMovie.id.match(/tt\d+/);
-          if (imdbIdMatch && imdbIdMatch[0]) {
-            const imdbId = imdbIdMatch[0];
-            try {
-              const omdbApiKey = process.env.NEXT_PUBLIC_OMDB_API_KEY;
-              const omdbResponse = await fetch(`https://www.omdbapi.com/?i=${imdbId}&apikey=${omdbApiKey}`);
-              const omdbData: OMDbMovie = await omdbResponse.json();
-              if (omdbData.Response === "True" && omdbData.Ratings) {
-                setOmdbRatings(omdbData.Ratings);
-                // Extract IMDb rating from OMDb Ratings
-                const imdbRatingObj = omdbData.Ratings.find(r => r.Source === "Internet Movie Database");
-                if (imdbRatingObj && imdbRatingObj.Value) {
-                  setOmdbImdbRating(imdbRatingObj.Value);
-                } else {
-                  setOmdbImdbRating(null);
-                }
-              } else if (omdbData.Response === "False") {
-                console.error("Error fetching OMDb data:", omdbData.Error);
-                setOmdbImdbRating(null);
-              }
-            } catch (omdbError) {
-              console.error("Failed to fetch OMDb data:", omdbError);
-              setOmdbImdbRating(null);
-            }
-          }
-          // Fetch average rating for this movie
-          fetchAverageRating(fetchedMovie.id);
-        }
+        // If we reach here, the movie wasn't found in any source
+        setError("Movie not found");
+        setIsLoading(false);
+        return;
       } catch (err) {
         setError("Failed to load movie details");
         console.error("Fetch error:", err);
@@ -356,7 +322,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   }, [id, router]);
 
   async function fetchAverageRating(movieId: string) {
-    const { data, error } = await supabaseClient
+    const { data, error } = await supabase
       .from('ratings')
       .select('rating')
       .eq('movie_imdb_id', movieId);
@@ -380,9 +346,9 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     if (movie) {
       setMovie({ ...movie, userRating: rating });
       // Upsert rating to Supabase
-      const { data: { user } } = await supabaseClient.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { error } = await supabaseClient
+        const { error } = await supabase
           .from('ratings')
           .upsert({
             user_id: user.id,
@@ -413,25 +379,20 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
   };
 
   const handleTorrentDownload = async (torrent: { url: string; hash: string; quality: string; size: string; seeds: number; peers: number; }) => {
-    toast.success(`Downloading ${movie?.title} in ${torrent.quality} (${torrent.size}).`);
     if (!movie) return;
     // Use the correct imdb_id for downloads
     const imdbId = (movie as any).imdb_id || movie.id;
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    console.log('DOWNLOAD: user', user, 'movie', movie, 'imdbId', imdbId);
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (user) {
-      const { error, data } = await supabaseClient
+      const { error, data } = await supabase
         .from('downloads')
         .insert({
           user_id: user.id,
           movie_imdb_id: imdbId,
         });
-      console.log('DOWNLOAD INSERT:', { error, data, userId: user.id, movieId: imdbId });
       if (error) {
         toast.error("Failed to log download event.");
       }
-    } else {
-      console.log('No user found for download event.');
     }
   };
 
@@ -439,7 +400,35 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     if (!movie) return;
 
     try {
-      const { error } = await supabaseClient
+      // First, ensure the movie exists in the movies table
+      const { data: existingMovie, error: movieError } = await supabase
+        .from('movies')
+        .select('id, imdb_id')
+        .eq('imdb_id', movie.id)
+        .single();
+
+      if (movieError && movieError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        throw movieError;
+      }
+
+      // If the movie doesn't exist in the movies table, insert it
+      if (!existingMovie) {
+        const { error: insertError } = await supabase
+          .from('movies')
+          .insert({
+            id: movie.id,
+            title: movie.title,
+            poster_url: movie.posterUrl,
+            year: movie.year,
+            imdb_id: movie.id,
+            genre: movie.genre?.join(', ')
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      // Add the movie to the collection
+      const { error } = await supabase
         .from('collection_movies')
         .insert({
           collection_id: collectionId,
@@ -459,20 +448,34 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
     setIsTrailerPlaying(true);
   };
 
-  // Placeholder for streaming function
-  const handleStreamMovie = () => {
-    if (!movie?.torrents || movie.torrents.length === 0) {
-      toast.error("No torrents available for streaming.");
-      return;
+  const handleStream = () => {
+    if (movie && movie.torrents && movie.torrents.length > 0) {
+      // TODO: Implement WebTorrent streaming logic here.
+      toast.success('Streaming feature coming soon!');
+    } else {
+      toast.error('No torrents available for streaming');
     }
+  };
 
-    // TODO: Implement WebTorrent streaming logic here.
-    // You would typically select a torrent from movie.torrents
-    // Initialize WebTorrent client
-    // Start fetching and streaming the torrent
-    console.log("Stream button clicked. Torrents available:", movie.torrents);
+  const handleDownload = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && movie) {
+      const imdbId = movie.id;
+      
+      const { error, data } = await supabase
+        .from('downloads')
+        .insert({
+          user_id: user.id,
+          movie_id: imdbId,
+          downloaded_at: new Date().toISOString()
+        });
 
-    toast.success("Streaming initiated");
+      if (error) {
+        toast.error('Failed to record download');
+      } else {
+        toast.success('Download recorded!');
+      }
+    }
   };
 
   if (isLoading) {
@@ -529,7 +532,7 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                     Add to Collection
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-56 max-h-[300px] overflow-y-auto">
                   {collections && collections.length > 0 ? (
                     collections.map((collection) => (
                       <DropdownMenuItem
@@ -553,9 +556,13 @@ export default function MoviePage({ params }: { params: Promise<{ id: string }> 
                 </DropdownMenuContent>
               </DropdownMenu>
               {/* Add Stream Button */}
-              <Button variant="default" className="w-full gap-2" onClick={handleStreamMovie}>
+              <Button variant="default" className="w-full gap-2" onClick={handleStream}>
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 Stream Movie
+              </Button>
+              <Button variant="outline" className="w-full gap-2" onClick={handleDownload}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download
               </Button>
               <Button variant="outline" className="w-full gap-2">
                 <Share2 className="h-4 w-4" />

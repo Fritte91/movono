@@ -8,6 +8,7 @@ import { genres } from "@/lib/movie-data"
 import { Search, Filter, X } from "lucide-react"
 import Link from "next/link"
 import { getMoviesFromSupabase } from "@/lib/api/getMoviesFromSupabase"
+import { supabase } from '@/lib/supabase-client'
 
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 60 }, (_, i) => currentYear - i); // Last 60 years
@@ -107,7 +108,6 @@ export default function SearchPage() {
             console.error("Error fetching from movies_mini:", error)
             return []
           }
-          console.log("movies_mini results:", data?.length || 0)
           return (data || []).map((movie: any) => ({
             ...movie,
             id_type: 'imdb',
@@ -124,7 +124,6 @@ export default function SearchPage() {
             console.error("Error fetching from movies:", error)
             return []
           }
-          console.log("movies results:", data?.length || 0)
           return (data || []).map((movie: any) => ({
             ...movie,
             id_type: 'imdb',
@@ -135,11 +134,9 @@ export default function SearchPage() {
         })()
       ])
 
-      console.log("Combined results before filtering:", miniResults.length + moviesResults.length)
       // Process and combine results
       const allResults = [...miniResults, ...moviesResults]
         .filter((movie: any) => !!movie.unique_id && !!movie.poster_url)
-      console.log("Results after filtering:", allResults.length)
 
       const mapped = allResults.map((movie: any) => ({
         ...movie,
@@ -151,7 +148,6 @@ export default function SearchPage() {
       const uniqueResults = Array.from(
         new Map(mapped.map(movie => [movie.unique_id, movie])).values()
       )
-      console.log("Final unique results:", uniqueResults.length)
 
       // Sort by IMDB rating
       const sortedResults = uniqueResults.sort((a, b) => 
@@ -285,7 +281,6 @@ export default function SearchPage() {
               {results.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {results.map((movie) => {
-                    console.log('Search movie:', movie);
                     return (
                       <Link key={movie.imdb_id} href={`/members/movie/${movie.imdb_id}`} className="group">
                         <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">

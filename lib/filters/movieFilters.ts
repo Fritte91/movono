@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import { supabase as clientSupabase } from '../supabase-client';
 import { Movie } from '../types';
 
 const TABLE_NAME = 'movies_mini'; // Use the high-quality table
@@ -87,23 +88,26 @@ export async function fetchMoviesWithFilters(
   options: MovieFilterOptions = {},
   cookieStore?: any
 ): Promise<FilterResult> {
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore?.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          cookieStore?.set(name, value, options);
-        },
-        remove(name: string, options: any) {
-          cookieStore?.set(name, '', { ...options, maxAge: 0 });
-        },
-      },
-    }
-  );
+  // Use the correct client depending on environment
+  const supabase = (typeof window === 'undefined')
+    ? createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              return cookieStore?.get(name)?.value;
+            },
+            set(name: string, value: string, options: any) {
+              cookieStore?.set(name, value, options);
+            },
+            remove(name: string, options: any) {
+              cookieStore?.set(name, '', { ...options, maxAge: 0 });
+            },
+          },
+        }
+      )
+    : clientSupabase;
 
   // Merge default filters with provided options
   const filters = { ...DEFAULT_FILTERS, ...options };

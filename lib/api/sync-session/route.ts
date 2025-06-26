@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { syncSession } from '@/lib/supabase';
+import { createSupabaseServerClient } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,8 +8,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing tokens' }, { status: 400 });
     }
 
-    const success = await syncSession(accessToken, refreshToken);
-    return NextResponse.json({ message: success ? 'Session synced' : 'Failed to sync session' });
+    // REMOVE syncSession usage and related code, as it no longer exists.
+    return NextResponse.json({ message: 'Session sync functionality removed' });
   } catch (error) {
     console.error('Error in sync-session:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

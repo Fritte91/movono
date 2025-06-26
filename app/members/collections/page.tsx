@@ -8,7 +8,7 @@ import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import type { Movie } from "@/lib/movie-data";
 import { CollectionDialog } from "@/components/collection-dialog";
-import { supabaseClient } from "@/lib/supabase";
+import { supabase } from '@/lib/supabase-client';
 
 export interface Collection {
   id: string;
@@ -33,7 +33,7 @@ export default function PublicCollectionsPage() {
 
   const handleSaveCollection = async (collectionData: Partial<Collection>) => {
     try {
-      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
         return;
@@ -41,7 +41,7 @@ export default function PublicCollectionsPage() {
 
     if (editingCollection) {
       // Update existing collection
-      const { error } = await supabaseClient
+      const { error } = await supabase
         .from('collections')
         .update({
           name: collectionData.name,
@@ -70,7 +70,7 @@ export default function PublicCollectionsPage() {
 
     } else {
     // Create new collection
-      const { data, error } = await supabaseClient
+      const { data, error } = await supabase
         .from('collections')
         .insert({
       name: collectionData.name || "New Collection",
@@ -100,7 +100,6 @@ export default function PublicCollectionsPage() {
   useEffect(() => {
     async function loadCollections() {
       try {
-        const supabase = createSupabaseServerClient();
         const { data, error } = await supabase
           .from('collections')
           .select('*, collection_movies!collection_movies_collection_id_fkey(movies_mini(*))')

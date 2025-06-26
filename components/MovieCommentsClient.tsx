@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabaseClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase-client';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,7 +40,7 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
     setIsSubmitting(true);
 
     try {
-      const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (userError || !userData.user) {
         toast.error('You must be logged in to comment');
@@ -49,7 +49,7 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
       }
 
       // Check if user has a profile, create one if not
-      const { data: profile, error: profileError } = await supabaseClient
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
         .eq('id', userData.user.id)
@@ -57,7 +57,7 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
 
       if (profileError && profileError.code === 'PGRST116') {
         // Profile doesn't exist, create one
-        const { error: createProfileError } = await supabaseClient
+        const { error: createProfileError } = await supabase
           .from('profiles')
           .insert({
             id: userData.user.id,
@@ -73,7 +73,7 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
       }
 
       // Insert the comment without returning data
-      const { error: insertError } = await supabaseClient
+      const { error: insertError } = await supabase
         .from('comments')
         .insert({
           movie_id: movieId,
@@ -95,7 +95,7 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
       }
 
       // After successful insert, fetch the updated comments
-      const { data: updatedComments, error: fetchError } = await supabaseClient
+      const { data: updatedComments, error: fetchError } = await supabase
         .from('comments')
         .select(`
           id,

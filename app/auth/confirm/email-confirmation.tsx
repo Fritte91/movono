@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { supabaseClient } from "@/lib/supabase"
+import { supabase } from '@/lib/supabase-client'
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import toast from "react-hot-toast"
@@ -24,7 +24,7 @@ export function EmailConfirmation() {
           return
         }
 
-        const { error } = await supabaseClient.auth.verifyOtp({
+        const { error } = await supabase.auth.verifyOtp({
           token_hash: token,
           type: 'signup'
         })

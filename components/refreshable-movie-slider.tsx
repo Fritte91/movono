@@ -62,7 +62,6 @@ export function RefreshableMovieSlider({ title, initialMovies, onRefresh }: Refr
         // If query returns 0 movies, increment retry count and keep existing
         sliderState[title].retryCount++;
         sliderState[title].hasMovies = false;
-        console.warn(`[${title}] Received 0 movies from query. Retry count: ${sliderState[title].retryCount}`);
       }
     }
   }, [queryData, title]); // Added title dependency

@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase-client';
 
 interface FeaturedMovie {
   id: string;
@@ -29,11 +29,6 @@ export function HeroSection() {
     let isMounted = true;
 
     async function fetchFeaturedMovie() {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      );
-
       try {
         // Check if we have a stored movie that's still valid (less than 30 minutes old)
         const storedMovieData = localStorage.getItem('featuredMovie');
@@ -67,7 +62,6 @@ export function HeroSection() {
         }
 
         if (!data || data.length === 0) {
-          console.log('No movies found with current filters, trying without filters...');
           // If no movies found with filters, try without them
           const { data: unfilteredData, error: unfilteredError } = await supabase
             .from('movies_mini')

@@ -7,13 +7,14 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 
 interface PageProps {
-  params: {
+  params: Promise<{
     slug: string
-  }
+  }>
 }
 
-export default function NewsArticlePage({ params }: PageProps) {
-  const article = getArticleBySlug(params.slug)
+export default async function NewsArticlePage({ params }: PageProps) {
+  const { slug } = await params
+  const article = getArticleBySlug(slug)
 
   if (!article) {
     notFound()

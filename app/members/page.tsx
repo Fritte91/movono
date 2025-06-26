@@ -92,32 +92,19 @@ export default function Members() {
   useEffect(() => {
     const checkUser = async () => {
       try {
-        console.log('Members page: Starting session check...')
-        
-        // First check if we have any cookies
-        console.log('Members page: Checking cookies...')
-        const cookies = document.cookie
-        console.log('Current cookies:', cookies)
-        
         const { data: { session }, error } = await supabase.auth.getSession()
         
-        console.log('Members page: Session check result:', { session, error })
-        
         if (error) {
-          console.error('Members page: Session check error:', error)
           throw error
         }
 
         if (!session) {
-          console.log('Members page: No session found, redirecting to login')
           router.push('/login')
           return
         }
 
-        console.log('Members page: Session found, user:', session.user)
         setUser(session.user)
       } catch (error) {
-        console.error('Members page: Error checking auth:', error)
         router.push('/login')
       } finally {
         setLoading(false)
@@ -201,35 +188,79 @@ export default function Members() {
   }
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center">Loading...</div>
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="flex justify-between items-center p-4">
-        <h1 className="text-2xl font-bold">Welcome, {user?.user_metadata?.username}</h1>
-      </div>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-2">
+              <span className="text-xl font-bold">Movono</span>
+            </Link>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  {user?.email}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link href="/members/profile">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/members/collections">Collections</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut}>
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </header>
 
-      <HeroSection />
+      {/* Main Content */}
+      <main>
+        {/* Hero Section */}
+        <HeroSection />
 
-      <Suspense fallback={<div>Loading movies...</div>}>
-        <MovieSlidersClient
-          initialMovies={{
-            popular: movies.popular,
-            topRated: movies.topRated,
-            newReleases: movies.newReleases,
-            comingSoon: movies.comingSoon,
-            genreMovies: movies.genreMovies
-          }}
-        />
-      </Suspense>
+        {/* Movie Sliders */}
+        <div className="container py-8">
+          <MovieSlidersClient 
+            initialMovies={{
+              popular: movies.popular,
+              topRated: movies.topRated,
+              newReleases: movies.newReleases,
+              comingSoon: movies.comingSoon,
+              genreMovies: movies.genreMovies
+            }}
+          />
+        </div>
 
-      <div className="container mx-auto px-4">
-        <Suspense fallback={<div>Loading latest Download movies...</div>}>
-          <YtsLatestMoviesSlider /> 
-        </Suspense>
-        <NewsPreview />
-      </div>
+        {/* YTS Latest Movies */}
+        <div className="container py-8">
+          <YtsLatestMoviesSlider />
+        </div>
+
+        {/* News Section */}
+        <div className="container py-8">
+          <NewsPreview />
+        </div>
+      </main>
     </div>
   )
 }

@@ -1,60 +1,43 @@
-import { NextResponse } from "next/server";
-import { getSimilarMovies } from "@/lib/api/getSimilarMovies";
+import { NextRequest, NextResponse } from 'next/server';
+import { getSimilarMovies } from '@/lib/api/getSimilarMovies';
 
-// Cache responses for 1 hour
-const CACHE_DURATION = 60 * 60; // 1 hour in seconds
+// Simple in-memory cache
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
-// In-memory cache with automatic cleanup
-const cache = new Map<string, { data: any[]; timestamp: number }>();
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const movieId = searchParams.get('movieId');
 
-// Cleanup old cache entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of cache.entries()) {
-    if (now - value.timestamp > CACHE_DURATION * 1000) {
-      cache.delete(key);
-    }
+  if (!movieId) {
+    return NextResponse.json(
+      { error: 'Missing movieId parameter' },
+      { status: 400 }
+    );
   }
-}, CACHE_DURATION * 1000);
 
-export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const movieId = searchParams.get("movieId");
-
-    if (!movieId) {
-      return NextResponse.json(
-        { error: "Movie ID is required" },
-        { status: 400 }
-      );
-    }
-
     // Check cache first
     const cached = cache.get(movieId);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION * 1000) {
-      console.log('Returning cached data for movieId:', movieId);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       return NextResponse.json({ movies: cached.data });
     }
 
     // Fetch similar movies
     const movies = await getSimilarMovies(movieId);
-    console.log('Fetched similar movies:', movies.map(m => ({ title: m.title, poster_url: m.poster_url })));
 
-    // Transform the data to match the expected format
-    const transformedMovies = movies.map(movie => {
-      console.log('Transforming movie:', { title: movie.title, poster_url: movie.poster_url });
-      return {
-        imdb_id: movie.id,
-        title: movie.title,
-        poster_url: movie.poster_url,
-        year: movie.year,
-        imdb_rating: movie.ratings.imdb
-      };
-    });
+    // Transform movies to match expected format
+    const transformedMovies = movies.map(movie => ({
+      id: movie.id,
+      title: movie.title,
+      poster_url: movie.poster_url,
+      year: movie.year,
+      imdb_id: movie.imdb_id,
+      genre: movie.genre,
+      ratings: movie.ratings
+    }));
 
-    console.log('Transformed movies:', transformedMovies);
-
-    // Update cache
+    // Cache the results
     cache.set(movieId, {
       data: transformedMovies,
       timestamp: Date.now()
@@ -62,7 +45,9 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ movies: transformedMovies });
   } catch (error) {
-    console.error('Error in similar movies API:', error);
-    return NextResponse.json({ movies: [] });
+    return NextResponse.json(
+      { error: 'Failed to fetch similar movies', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 } 

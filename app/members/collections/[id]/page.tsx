@@ -10,7 +10,7 @@ import { CollectionDialog } from "@/components/collection-dialog";
 import { createSupabaseServerClient } from "@/lib/supabase";
 import type { Movie } from "@/lib/movie-data";
 import { use } from "react";
-import { supabaseClient } from "@/lib/supabase";
+import { supabase } from '@/lib/supabase-client';
 
 export interface Collection {
   id: string;
@@ -42,7 +42,14 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         const supabase = createSupabaseServerClient();
         const { data, error } = await supabase
           .from('collections')
-          .select('*, collection_movies!collection_movies_collection_id_fkey(movie_imdb_id, movies_mini(imdb_id, title, poster_url, year))')
+          .select(`
+            *,
+            collection_movies!collection_movies_collection_id_fkey(
+              movie_imdb_id,
+              movies!inner(id, title, poster_url, year, imdb_id),
+              movies_mini!inner(imdb_id, title, poster_url, year)
+            )
+          `)
           .eq('id', id)
           .single();
 
@@ -67,13 +74,18 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           createdAt: new Date(data.created_at),
           updatedAt: new Date(data.updated_at),
           userId: data.user_id,
-          // Extract movie data from the nested collection_movies relationship
-          movies: data.collection_movies?.filter((cm: any) => !!cm.movies_mini.imdb_id && !!cm.movies_mini.poster_url).map((cm: any) => ({
-            imdb_id: cm.movies_mini.imdb_id,
-            title: cm.movies_mini.title,
-            poster_url: cm.movies_mini.poster_url,
-            year: cm.movies_mini.year,
-          })) || [],
+          // Extract movie data from both movies and movies_mini tables
+          movies: data.collection_movies?.map((cm: any) => {
+            // Use data from movies table if available, otherwise use movies_mini
+            const movieData = cm.movies || cm.movies_mini;
+            if (!movieData?.imdb_id || !movieData?.title) return null;
+            return {
+              imdb_id: movieData.imdb_id,
+              title: movieData.title,
+              poster_url: movieData.poster_url || '/placeholder.svg',
+              year: movieData.year || new Date().getFullYear(),
+            };
+          }).filter((movie: Movie | null): movie is Movie => movie !== null) || [],
           gradientColor1: data.gradient_color1,
           gradientColor2: data.gradient_color2,
           gradientAngle: data.gradient_angle,
@@ -93,7 +105,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
     if (!collection) return;
 
     try {
-      const { error } = await supabaseClient
+      const { error } = await supabase
         .from('collection_movies')
         .delete()
         .eq('collection_id', collection.id)
@@ -120,14 +132,14 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
     if (!collection) return;
 
     try {
-      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !user) {
         return;
       }
 
       // Update existing collection in the database
-      const { error } = await supabaseClient
+      const { error } = await supabase
         .from('collections')
         .update({
           name: collectionData.name,
@@ -225,7 +237,6 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
         {collection.movies.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {collection.movies.map((movie) => {
-              console.log('Collection movie:', movie);
               return (
                 <div key={movie.imdb_id} className="group relative">
                   <Link href={`/members/movie/${movie.imdb_id}`} className="block">
@@ -252,7 +263,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
                     variant="ghost"
                     size="icon"
                     className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleRemoveMovie(movie.imdb_id)}
+                    onClick={() => movie.imdb_id && handleRemoveMovie(movie.imdb_id)}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

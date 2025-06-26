@@ -86,32 +86,40 @@ export function MovieSlidersClient({ initialMovies }: MovieSlidersClientProps) {
             const { getUpcomingMovies } = await import("@/lib/api/tmdb");
             const movies = await getUpcomingMovies();
             return movies
-              .filter(movie => !!movie.imdbId && !!movie.posterUrl)
-              .map(movie => ({
-                imdb_id: movie.imdbId,
-                title: movie.title,
-                year: movie.year,
-                poster_url: movie.posterUrl,
-                genre: movie.genre || [],
-                ratings: movie.ratings || { imdb: 0, rottenTomatoes: '0', metacritic: 0 },
-                runtime: movie.runtime || 0,
-                released: "",
-                director: movie.director || "",
-                writer: "",
-                actors: movie.cast || [],
-                plot: movie.plot || "",
-                language: movie.language || [],
-                country: movie.country || [],
-                awards: "",
-                metascore: 0,
-                imdbVotes: 0,
-                type: "movie",
-                dvd: "",
-                boxOffice: "",
-                production: "",
-                website: "",
-                id: movie.imdbId,
-              }));
+              .filter(movie => {
+                // Access properties using bracket notation to avoid type issues
+                const movieData = movie as any;
+                return !!movieData.posterUrl;
+              })
+              .map(movie => {
+                // Access properties using bracket notation to avoid type issues
+                const movieData = movie as any;
+                return {
+                  imdb_id: movieData.id, // Use the TMDB ID (tmdb-{id}) as imdb_id for the slider
+                  title: movie.title,
+                  year: movie.year,
+                  poster_url: movieData.posterUrl,
+                  genre: movie.genre || [],
+                  ratings: movie.ratings || { imdb: 0, rottenTomatoes: '0', metacritic: 0 },
+                  runtime: movie.runtime || 0,
+                  released: "",
+                  director: movie.director || "",
+                  writer: "",
+                  actors: movieData.cast || [],
+                  plot: movie.plot || "",
+                  language: movie.language || [],
+                  country: movie.country || [],
+                  awards: "",
+                  metascore: 0,
+                  imdbVotes: 0,
+                  type: "movie",
+                  dvd: "",
+                  boxOffice: "",
+                  production: "",
+                  website: "",
+                  id: movieData.id, // Use the TMDB ID (tmdb-{id}) as the main ID
+                } as Movie;
+              });
           }}
         />
       </Suspense>

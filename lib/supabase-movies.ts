@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './supabase-client';
 import { createServerClient } from '@supabase/ssr';
 import { createBrowserClient } from '@supabase/ssr';
 import { Movie } from './movie-data';

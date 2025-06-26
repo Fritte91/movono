@@ -13,49 +13,37 @@ interface TMDBSimilarMoviesResponse {
   }[];
 }
 
-interface TMDBMovieDetails {
-  id: number;
-  genre_ids: number[];
-}
-
 export async function getSimilarMovies(movieId: string): Promise<Movie[]> {
-  try {
-    let tmdbId: string | null = null;
+  if (!TMDB_API_KEY) return [];
 
-    // Handle both IMDb IDs and TMDB IDs
-    if (movieId.startsWith('tt')) {
-      const id = await getTmdbIdFromImdbId(movieId);
-      tmdbId = id ? id.toString() : null;
-    } else if (movieId.startsWith('tmdb-')) {
-      tmdbId = movieId.replace('tmdb-', '');
+  try {
+    // First, try to get TMDB ID from IMDb ID
+    const tmdbId = await getTmdbIdFromImdbId(movieId);
+    
+    if (!tmdbId) {
+      return [];
     }
 
-    if (!tmdbId || !TMDB_API_KEY) return [];
+    // Fetch similar movies from TMDB
+    const url = `${TMDB_BASE_URL}/movie/${tmdbId}/similar?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
+    const response = await fetch(url);
 
-    const similarUrl = `${TMDB_BASE_URL}/movie/${tmdbId}/similar?api_key=${TMDB_API_KEY}&language=en-US&page=1`;
-    const similarResponse = await fetch(similarUrl, { 
-      cache: "no-store",
-      headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'public, max-age=3600'
-      }
-    });
+    if (!response.ok) {
+      return [];
+    }
 
-    if (!similarResponse.ok) return [];
+    const data: TMDBSimilarMoviesResponse = await response.json();
+    const tmdbMovies = data.results || [];
 
-    const similarData: TMDBSimilarMoviesResponse = await similarResponse.json();
-    const tmdbMovies = (similarData.results || []).slice(0, 4);
-
-    console.log('TMDB Movies:', tmdbMovies.map(m => ({ title: m.title, poster_path: m.poster_path })));
+    // Take only the first 10 similar movies
+    const limitedMovies = tmdbMovies.slice(0, 10);
 
     const movies = await Promise.all(
-      tmdbMovies.map(async (movie) => {
+      limitedMovies.map(async (movie) => {
         const imdbId = await getMovieImdbId(movie.id);
         const posterUrl = movie.poster_path
           ? `${TMDB_IMAGE_BASE_URL}${movie.poster_path}`
           : "/placeholder.svg";
-        
-        console.log('Movie poster URL:', { title: movie.title, posterUrl });
         
         return {
           id: imdbId || `tmdb-${movie.id}`,
@@ -93,10 +81,8 @@ export async function getSimilarMovies(movieId: string): Promise<Movie[]> {
       })
     );
 
-    console.log('Final movies:', movies.map(m => ({ title: m.title, poster_url: m.poster_url })));
     return movies;
   } catch (error) {
-    console.error('Error fetching similar movies:', error);
     return [];
   }
 }

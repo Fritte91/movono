@@ -10,13 +10,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Link from "next/link"
 import { RatingStars } from "@/components/rating-stars"
 import { Plus } from "lucide-react"
-import { supabaseClient } from "@/lib/supabase"
+import { supabase } from '@/lib/supabase-client'
 import { useRouter, useSearchParams } from "next/navigation"
 
 // Import the new components and data
 import { CollectionsGrid } from "@/components/collections-grid"
 import { CollectionDialog } from "@/components/collection-dialog"
 import { AchievementsDisplay } from "@/components/achievements-display"
+import { MovieSyncStatus } from "@/components/movie-sync-status"
 import { getUserCollections } from "@/lib/collections-data"
 import { getUserAchievements } from "@/lib/achievements-data"
 import type { Collection } from "@/lib/collections-data"
@@ -47,7 +48,7 @@ export default function ProfilePage() {
   useEffect(() => {
     async function loadUserData() {
       try {
-        const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
         
         if (userError || !user) {
           router.push("/login")
@@ -57,7 +58,7 @@ export default function ProfilePage() {
         setUserId(user.id)
 
         // Get user profile data
-        const { data: profile, error: profileError } = await supabaseClient
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
@@ -66,7 +67,7 @@ export default function ProfilePage() {
         if (profileError) {
           // If profile doesn't exist, create one
           if (profileError.code === 'PGRST116') {
-            const { data: newProfile, error: createError } = await supabaseClient
+            const { data: newProfile, error: createError } = await supabase
               .from('profiles')
               .insert({
                 id: user.id,
@@ -110,7 +111,7 @@ export default function ProfilePage() {
         }
 
         // Load collections with movies count
-        const { data: userCollections, error: collectionsError } = await supabaseClient
+        const { data: userCollections, error: collectionsError } = await supabase
           .from('collections')
           .select(`
             *,
@@ -149,66 +150,36 @@ export default function ProfilePage() {
           setCollections(collectionsWithMovies)
         }
 
-        // Load rated movies with error handling
+        // Try to get user ratings
         try {
-          const { data: ratings, error: ratingsError } = await supabaseClient
+          const { data: ratings, error: ratingsError } = await supabase
             .from('ratings')
-            .select(`
-              id,
-              rating,
-              created_at,
-              movie_imdb_id,
-              movies_mini:movies_mini!inner(imdb_id, title, poster_url, year)
-            `)
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(5)
+            .select('*')
+            .eq('user_id', user.id);
 
           if (ratingsError) {
-            if (ratingsError.code === '42P01') { // Table doesn't exist
-              console.log('Ratings table not found, skipping...')
-              setRatedMovies([])
-            } else {
-              console.error('Error loading ratings:', ratingsError.message)
-              setRatedMovies([])
-            }
+            // Ratings table might not exist yet
           } else {
-            setRatedMovies(ratings || [])
+            setRatedMovies(ratings || []);
           }
         } catch (error) {
-          console.error('Error in ratings query:', error)
-          setRatedMovies([])
+          // Ratings table not found, skipping...
         }
 
-        // Load downloaded movies with error handling
+        // Try to get user downloads
         try {
-          const { data: downloads, error: downloadsError } = await supabaseClient
+          const { data: downloads, error: downloadsError } = await supabase
             .from('downloads')
-            .select(`
-              id,
-              created_at,
-              movie_imdb_id,
-              movies_mini(imdb_id, title, poster_url, year)
-            `)
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(3)
+            .select('*')
+            .eq('user_id', user.id);
 
           if (downloadsError) {
-            if (downloadsError.code === '42P01') { // Table doesn't exist
-              console.log('Downloads table not found, skipping...')
-              setDownloadedMovies([])
-            } else {
-              console.error('Error loading downloads:', downloadsError.message)
-              setDownloadedMovies([])
-            }
+            // Downloads table might not exist yet
           } else {
-            setDownloadedMovies(downloads || [])
-            console.log('Downloaded movies:', downloads);
+            setDownloadedMovies(downloads || []);
           }
         } catch (error) {
-          console.error('Error in downloads query:', error)
-          setDownloadedMovies([])
+          // Downloads table not found, skipping...
         }
 
       } catch (error) {
@@ -223,13 +194,13 @@ export default function ProfilePage() {
 
   const handleSaveProfile = async () => {
     try {
-      const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
       
       if (userError || !user) {
         return
       }
 
-      const { error: updateError } = await supabaseClient
+      const { error: updateError } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
@@ -258,7 +229,7 @@ export default function ProfilePage() {
 
   const handleDeleteCollection = async (collection: Collection) => {
     try {
-      const { error } = await supabaseClient
+      const { error } = await supabase
         .from('collections')
         .delete()
         .eq('id', collection.id)
@@ -273,7 +244,7 @@ export default function ProfilePage() {
 
   const handleToggleVisibility = async (collection: Collection) => {
     try {
-      const { error } = await supabaseClient
+      const { error } = await supabase
         .from('collections')
         .update({ is_public: !collection.isPublic })
         .eq('id', collection.id)
@@ -291,7 +262,7 @@ export default function ProfilePage() {
 
   const handleSaveCollection = async (collectionData: Partial<Collection>) => {
     try {
-      const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
       
       if (userError || !user) {
         return
@@ -299,7 +270,7 @@ export default function ProfilePage() {
 
     if (editingCollection) {
       // Update existing collection
-        const { error } = await supabaseClient
+        const { error } = await supabase
           .from('collections')
           .update({
             name: collectionData.name,
@@ -328,7 +299,7 @@ export default function ProfilePage() {
 
       } else {
         // Create new collection
-        const { data, error } = await supabaseClient
+        const { data, error } = await supabase
           .from('collections')
           .insert({
         name: collectionData.name || "New Collection",
@@ -494,6 +465,7 @@ export default function ProfilePage() {
           <TabsTrigger value="ratings">Ratings</TabsTrigger>
           <TabsTrigger value="activity">Activity</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="sync">Movie Sync</TabsTrigger>
         </TabsList>
         
         <TabsContent value="achievements" className="space-y-4">
@@ -591,7 +563,7 @@ export default function ProfilePage() {
               open={isCollectionDialogOpen}
               onOpenChange={setIsCollectionDialogOpen}
               onSave={handleSaveCollection}
-              editingCollection={editingCollection}
+              collection={editingCollection}
             />
           </Card>
         </TabsContent>
@@ -688,6 +660,12 @@ export default function ProfilePage() {
         
         <TabsContent value="settings">
           {/* Restore your settings UI here */}
+        </TabsContent>
+        
+        <TabsContent value="sync">
+          <div className="flex justify-center">
+            <MovieSyncStatus />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

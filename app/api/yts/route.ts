@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
 
 // Cache duration for responses
@@ -56,8 +56,8 @@ interface YtsResponse {
   };
 }
 
-// In-memory cache with automatic cleanup
-const cache = new Map<string, { data: YtsTorrent[]; timestamp: number }>();
+// Simple in-memory cache for torrent data
+const cache = new Map<string, { data: any; timestamp: number }>();
 
 // Clean up old cache entries every hour
 setInterval(() => {
@@ -96,37 +96,36 @@ async function getYtsSession() {
   }
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const imdbId = searchParams.get('imdb_id');
+
+  if (!imdbId) {
+    return NextResponse.json(
+      { error: 'Missing imdb_id parameter' },
+      { status: 400 }
+    );
+  }
+
   try {
-    const { searchParams } = new URL(request.url);
-    const imdbId = searchParams.get('imdbId');
-
-    if (!imdbId) {
-      return NextResponse.json(
-        { error: 'IMDb ID is required' },
-        { status: 400 }
-      );
-    }
-
     // Check cache first
-    const cachedData = cache.get(imdbId);
-    if (cachedData && Date.now() - cachedData.timestamp < CACHE_DURATION) {
-      console.log('Using cached data for IMDb:', imdbId);
-      return NextResponse.json({ torrents: cachedData.data });
+    const cached = cache.get(imdbId);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      return NextResponse.json({ torrents: cached.data });
     }
 
-    // Try both endpoints to see which one works better
+    // Try multiple YTS API endpoints
     const endpoints = [
       `https://yts.mx/api/v2/movie_details.json?imdb_id=${imdbId}`,
-      `https://yts.mx/api/v2/list_movies.json?query_term=${imdbId}`
+      `https://yts.mx/api/v2/movie_details.json?imdb_id=${imdbId}&with_images=true&with_cast=true`,
+      `https://yts.mx/api/v2/list_movies.json?query_term=${imdbId}`,
     ];
 
-    let data: YtsResponse | null = null;
+    let data: any = null;
     let error: Error | null = null;
 
     for (const endpoint of endpoints) {
       try {
-        console.log('Trying YTS API endpoint:', endpoint);
         const response = await fetch(endpoint, {
           headers: {
             'Accept': 'application/json',
@@ -135,43 +134,32 @@ export async function GET(request: Request) {
         });
 
         if (!response.ok) {
-          console.error(`YTS API responded with status: ${response.status} for endpoint: ${endpoint}`);
           continue;
         }
 
         const responseData = await response.json();
-        console.log('YTS API Response:', {
-          endpoint,
-          status: responseData.status,
-          hasMovie: !!responseData.data?.movie,
-          hasMovies: !!responseData.data?.movies,
-          movieCount: responseData.data?.movie_count
-        });
 
         if (responseData.status === 'ok') {
           data = responseData;
           break;
         }
       } catch (e) {
-        console.error(`Error fetching from ${endpoint}:`, e);
         error = e as Error;
       }
     }
 
     if (!data) {
-      console.error('All YTS API endpoints failed:', error);
       return NextResponse.json({ torrents: [] });
     }
 
     // Handle both response formats
     const movie = data.data.movie || (data.data.movies && data.data.movies[0]);
     
-    if (!movie || !movie.torrents || movie.torrents.length === 0) {
-      console.error('No movie or torrents found in response:', data);
+    if (!movie || !movie.torrents || !Array.isArray(movie.torrents) || movie.torrents.length === 0) {
       return NextResponse.json({ torrents: [] });
     }
 
-    const torrents = movie.torrents.map(torrent => ({
+    const torrents = movie.torrents.map((torrent: any) => ({
       url: torrent.url,
       hash: torrent.hash,
       quality: torrent.quality,
@@ -184,13 +172,6 @@ export async function GET(request: Request) {
       date_uploaded_unix: torrent.date_uploaded_unix
     }));
 
-    console.log('Found torrents:', {
-      count: torrents.length,
-      qualities: torrents.map(t => t.quality),
-      hasUrls: torrents.every(t => !!t.url),
-      hasHashes: torrents.every(t => !!t.hash)
-    });
-
     // Cache the results
     cache.set(imdbId, {
       data: torrents,
@@ -199,7 +180,6 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ torrents });
   } catch (error) {
-    console.error('Error fetching from YTS:', error);
     return NextResponse.json(
       { error: 'Failed to fetch torrents', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

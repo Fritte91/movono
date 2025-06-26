@@ -1,6 +1,5 @@
 import { createServerClient, createBrowserClient, type CookieOptions } from '@supabase/ssr';
 import { Database } from '@/lib/database.types';
-import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://witpoqobiuvhokyjopod.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpdHBvcW9iaXV2aG9reWpvcG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc2Mjg1NDYsImV4cCI6MjA2MzIwNDU0Nn0.-a_2H_9eJP3lPMOcaK19kWVGrVhzGnhzqmggY9my9RQ'
@@ -103,20 +102,4 @@ export async function syncSession(accessToken: string, refreshToken: string, coo
     console.error('Error syncing session:', error);
   }
   return !error;
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-const fetchCollections = async () => {
-  const { data, error } = await supabase
-    .from('collections')
-    .select('*')
-    .eq('user_id', currentUser.id)
-
-  if (error) {
-    console.error('Error fetching collections:', error)
-    return []
-  }
-
-  return data
 }

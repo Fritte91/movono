@@ -1,14 +1,12 @@
-import { NextResponse } from "next/server";
-import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 import { config } from '@/lib/config';
-
-// Cache the YTS session for 24 hours
-const SESSION_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 interface YtsSession {
   cookies: string[];
   timestamp: number;
 }
+
+const SESSION_CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
 
 let ytsSession: YtsSession | null = null;
 
@@ -16,12 +14,6 @@ async function loginToYts() {
   try {
     const YTS_USERNAME = config.yts.username;
     const YTS_PASSWORD = config.yts.password;
-
-    // Debug logging
-    console.log('YTS Auth Debug:', {
-      hasUsername: !!YTS_USERNAME,
-      hasPassword: !!YTS_PASSWORD
-    });
 
     if (!YTS_USERNAME || !YTS_PASSWORD) {
       throw new Error('YTS credentials not configured');
@@ -37,10 +29,6 @@ async function loginToYts() {
     });
 
     if (!csrfResponse.ok) {
-      console.error('CSRF Response Error:', {
-        status: csrfResponse.status,
-        statusText: csrfResponse.statusText
-      });
       throw new Error('Failed to get CSRF page');
     }
 
@@ -49,7 +37,6 @@ async function loginToYts() {
     const csrfToken = csrfMatch ? csrfMatch[1] : null;
 
     if (!csrfToken) {
-      console.error('CSRF Token not found in response');
       throw new Error('Failed to get CSRF token');
     }
 
@@ -73,28 +60,20 @@ async function loginToYts() {
     });
 
     if (!loginResponse.ok) {
-      console.error('Login Response Error:', {
-        status: loginResponse.status,
-        statusText: loginResponse.statusText
-      });
       throw new Error('Login request failed');
     }
 
     const cookies = loginResponse.headers.getSetCookie();
     
     if (!cookies.length) {
-      console.error('No cookies received from login response');
       throw new Error('Login failed - no cookies received');
     }
-
-    console.log('Login successful, received cookies:', cookies.length);
 
     return {
       cookies,
       timestamp: Date.now()
     };
   } catch (error) {
-    console.error('YTS login error:', error);
     throw error;
   }
 }
@@ -102,34 +81,32 @@ async function loginToYts() {
 async function getYtsSession(): Promise<YtsSession> {
   // Check if we have a valid cached session
   if (ytsSession && Date.now() - ytsSession.timestamp < SESSION_CACHE_DURATION) {
-    console.log('Using cached YTS session');
     return ytsSession;
   }
 
-  console.log('No valid session found, performing login');
   // If no valid session, perform login
   ytsSession = await loginToYts();
   return ytsSession;
 }
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    console.log('YTS Auth route called');
     const session = await getYtsSession();
     
-    // Create response with success status
-    const response = NextResponse.json({ success: true });
-    
-    // Set all cookies from the YTS session
-    session.cookies.forEach(cookie => {
-      response.headers.append('Set-Cookie', cookie);
+    return NextResponse.json({
+      success: true,
+      session: {
+        timestamp: session.timestamp,
+        cookieCount: session.cookies.length
+      }
     });
-    
-    return response;
   } catch (error) {
-    console.error('Error in YTS auth route:', error);
     return NextResponse.json(
-      { error: 'Failed to authenticate with YTS', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        success: false, 
+        error: 'Failed to authenticate with YTS',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
