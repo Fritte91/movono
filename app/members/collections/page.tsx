@@ -87,7 +87,10 @@ export default function PublicCollectionsPage() {
 
       if (error) throw error
 
-      setCollections([{ ...data, movies: [], createdAt: new Date(data.created_at), updatedAt: new Date(data.updated_at) }, ...collections])
+      if (data && typeof data === 'object') {
+        const d: any = data;
+        setCollections([{ ...d, movies: [], createdAt: new Date(d.created_at), updatedAt: new Date(d.updated_at) }, ...collections])
+      }
     }
 
   setEditingCollection(undefined)
