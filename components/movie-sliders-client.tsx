@@ -1,9 +1,11 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { RefreshableMovieSlider } from "./refreshable-movie-slider";
 import { fetchMoviesFromSupabaseClient } from "@/lib/supabase-movies";
 import { Movie } from "@/lib/movie-data";
+import { getMoviesByCategory, fetchMoviesWithFilters } from '@/lib/filters/movieFilters';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TMDBMovie {
   id: number;
@@ -35,53 +37,158 @@ const TMDB_GENRES: { [key: number]: string } = {
   37: "Western"
 };
 
+// Main genres for performance optimization
+const mainGenres = [
+  "Action",
+  "Drama", 
+  "Comedy",
+  "Thriller",
+  "Sci-Fi",
+  "Horror"
+];
+
 // Helper function to get a random offset
 const getRandomOffset = () => {
-  // Generate a random number between 0 and 1000 to get more variety
   return Math.floor(Math.random() * 1000);
 };
 
-interface MovieSlidersClientProps {
-  initialMovies: {
+// Loading skeleton for movie sliders
+const MovieSliderSkeleton = ({ title }: { title: string }) => (
+  <div className="space-y-4">
+    <Skeleton className="h-8 w-48" />
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      {[1, 2, 3, 4, 5].map((j) => (
+        <div key={j} className="space-y-2">
+          <Skeleton className="aspect-[2/3] w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+export function MovieSlidersClient() {
+  const [movies, setMovies] = useState<{
     popular: Movie[];
     topRated: Movie[];
     newReleases: Movie[];
     comingSoon: Movie[];
     genreMovies: Record<string, Movie[]>;
-  };
-}
+  }>({
+    popular: [],
+    topRated: [],
+    newReleases: [],
+    comingSoon: [],
+    genreMovies: {}
+  });
+  const [loading, setLoading] = useState(true);
 
-export function MovieSlidersClient({ initialMovies }: MovieSlidersClientProps) {
+  useEffect(() => {
+    const fetchMovies = async () => {
+      try {
+        const [popular, topRated, newReleases, comingSoon] = await Promise.all([
+          getMoviesByCategory('popular'),
+          getMoviesByCategory('top_rated'),
+          getMoviesByCategory('new_releases'),
+          getMoviesByCategory('coming_soon')
+        ]);
+
+        // Create an array of possible sort options with correct types
+        const sortOptions = [
+          { sortBy: 'popularity' as const, sortOrder: 'desc' as const },
+          { sortBy: 'ratings->>imdb' as const, sortOrder: 'desc' as const },
+          { sortBy: 'year' as const, sortOrder: 'desc' as const },
+          { sortBy: 'vote_count' as const, sortOrder: 'desc' as const }
+        ];
+
+        const genreMoviesPromises = mainGenres.map(genre => {
+          // Get a random sort option
+          const randomSort = sortOptions[Math.floor(Math.random() * sortOptions.length)];
+          
+          // Generate a random offset between 0 and 200 for more variety
+          const randomOffset = Math.floor(Math.random() * 200);
+          
+          // Randomly adjust the year range to get more variety
+          const currentYear = new Date().getFullYear();
+          const randomYearRange = Math.floor(Math.random() * 3); // 0, 1, or 2
+          const minYear = currentYear - (20 + randomYearRange * 10); // 20, 30, or 40 years back
+          
+          return fetchMoviesWithFilters({ 
+            genre,
+            minYear,
+            maxYear: currentYear,
+            minImdb: 5.0,
+            minVoteCount: 50,
+            minPopularity: 5,
+            ...randomSort,
+            limit: 20,
+            offset: randomOffset
+          });
+        });
+        
+        const genreMoviesResults = await Promise.all(genreMoviesPromises);
+        const genreMovies = Object.fromEntries(
+          mainGenres.map((genre, index) => [genre, genreMoviesResults[index].movies])
+        );
+
+        setMovies({
+          popular,
+          topRated,
+          newReleases,
+          comingSoon,
+          genreMovies
+        });
+      } catch (error) {
+        console.error('Error fetching movies:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMovies();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="container py-8 space-y-8">
+        {['Popular', 'Top Rated', 'New Releases', 'Coming Soon', ...mainGenres].map((title) => (
+          <MovieSliderSkeleton key={title} title={title} />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
-      <Suspense fallback={<div>Loading popular movies...</div>}>
+    <div className="container py-8 space-y-8">
+      <Suspense fallback={<MovieSliderSkeleton title="Popular" />}>
         <RefreshableMovieSlider
           title="Popular"
-          initialMovies={initialMovies.popular}
+          initialMovies={movies.popular}
           onRefresh={() => fetchMoviesFromSupabaseClient("popular", { offset: getRandomOffset() })}
         />
       </Suspense>
 
-      <Suspense fallback={<div>Loading top rated movies...</div>}>
+      <Suspense fallback={<MovieSliderSkeleton title="Top Rated" />}>
         <RefreshableMovieSlider
           title="Top Rated"
-          initialMovies={initialMovies.topRated}
+          initialMovies={movies.topRated}
           onRefresh={() => fetchMoviesFromSupabaseClient("top_rated", { offset: getRandomOffset() })}
         />
       </Suspense>
 
-      <Suspense fallback={<div>Loading new releases...</div>}>
+      <Suspense fallback={<MovieSliderSkeleton title="New Releases" />}>
         <RefreshableMovieSlider
           title="New Releases"
-          initialMovies={initialMovies.newReleases}
+          initialMovies={movies.newReleases}
           onRefresh={() => fetchMoviesFromSupabaseClient("new_releases", { offset: getRandomOffset() })}
         />
       </Suspense>
 
-      <Suspense fallback={<div>Loading coming soon movies...</div>}>
+      <Suspense fallback={<MovieSliderSkeleton title="Coming Soon" />}>
         <RefreshableMovieSlider
           title="Coming Soon"
-          initialMovies={initialMovies.comingSoon}
+          initialMovies={movies.comingSoon}
           onRefresh={async () => {
             const { getUpcomingMovies } = await import("@/lib/api/tmdb");
             const movies = await getUpcomingMovies();
@@ -125,8 +232,8 @@ export function MovieSlidersClient({ initialMovies }: MovieSlidersClientProps) {
       </Suspense>
 
       {/* Genre Sliders */}
-      {Object.entries(initialMovies.genreMovies).map(([genre, movies]) => (
-        <Suspense key={genre} fallback={<div>Loading {genre} movies...</div>}>
+      {Object.entries(movies.genreMovies).map(([genre, movies]) => (
+        <Suspense key={genre} fallback={<MovieSliderSkeleton title={genre} />}>
           <RefreshableMovieSlider
             title={genre}
             initialMovies={movies}

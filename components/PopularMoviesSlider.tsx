@@ -23,5 +23,5 @@ export function PopularMoviesSlider() {
 
   if (loading) return <div>Loading popular movies...</div>;
 
-  return <MovieSlider movies={movies} title="Popular Movies" />;
+  return <MovieSlider movies={movies.slice(0, 20)} title="Popular Movies" />;
 }

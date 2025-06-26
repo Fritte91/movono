@@ -1,0 +1,63 @@
+{
+  "name": "Movono - Your Ultimate Movie Experience",
+  "short_name": "Movono",
+  "description": "Discover, track, and explore movies with Movono. Your personal movie companion with advanced search, collections, and recommendations.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["entertainment", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "/movono16.ico",
+      "sizes": "16x16",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/movono32.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/movono192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/movono512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Search Movies",
+      "short_name": "Search",
+      "description": "Search for movies, directors, and actors",
+      "url": "/members/search",
+      "icons": [
+        {
+          "src": "/movono32.ico",
+          "sizes": "32x32"
+        }
+      ]
+    },
+    {
+      "name": "My Collections",
+      "short_name": "Collections",
+      "description": "View your movie collections",
+      "url": "/members/collections",
+      "icons": [
+        {
+          "src": "/movono32.ico",
+          "sizes": "32x32"
+        }
+      ]
+    }
+  ]
+} 

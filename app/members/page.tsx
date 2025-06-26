@@ -2,24 +2,56 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { fetchMoviesFromSupabase } from '@/lib/supabase-movies'
-import { NewsPreview } from '@/components/news-preview'
-import { HeroSection } from '@/components/hero-section'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { genres } from '@/lib/movie-data'
 import Link from 'next/link'
 import { ChevronDown, Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { getUpcomingMovies } from '@/lib/api/tmdb'
-import { MovieSlidersClient } from '@/components/movie-sliders-client'
-import { Suspense } from "react"
 import { Movie } from "@/lib/movie-data"
 import { supabase } from '@/lib/supabase-client'
 import { getMoviesByCategory, fetchMoviesWithFilters } from '@/lib/filters/movieFilters'
 import { TMDB_GENRES } from '@/lib/api/tmdb'
-import { YtsLatestMoviesSlider } from '@/components/yts-latest-movies-slider'
+
+// Lazy load heavy components
+const NewsPreview = lazy(() => import('@/components/news-preview').then(mod => ({ default: mod.NewsPreview })))
+const HeroSection = lazy(() => import('@/components/hero-section').then(mod => ({ default: mod.HeroSection })))
+const MovieSlidersClient = lazy(() => import('@/components/movie-sliders-client').then(mod => ({ default: mod.MovieSlidersClient })))
+const YtsLatestMoviesSlider = lazy(() => import('@/components/yts-latest-movies-slider').then(mod => ({ default: mod.YtsLatestMoviesSlider })))
+
+// Optimized loading skeleton
+const LoadingSkeleton = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="text-center space-y-4">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto"></div>
+      <p className="text-muted-foreground">Loading your movie experience...</p>
+    </div>
+  </div>
+)
+
+// Optimized movie sliders skeleton
+const MovieSlidersSkeleton = () => (
+  <div className="container py-8 space-y-8">
+    {[1, 2, 3, 4, 5, 6].map((i) => (
+      <div key={i} className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {[1, 2, 3, 4, 5].map((j) => (
+            <div key={j} className="space-y-2">
+              <Skeleton className="aspect-[2/3] w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+)
 
 function mapTMDBMoviesToMovie(tmdbMovies: any[]): Movie[] {
   return tmdbMovies.map(movie => ({
@@ -74,20 +106,13 @@ const mainGenres = [
 export default function Members() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [movies, setMovies] = useState<{
-    popular: Movie[];
-    topRated: Movie[];
-    newReleases: Movie[];
-    comingSoon: Movie[];
-    genreMovies: Record<string, Movie[]>;
-  }>({
-    popular: [],
-    topRated: [],
-    newReleases: [],
-    comingSoon: [],
-    genreMovies: {}
-  })
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
+
+  // Hydration safety
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   useEffect(() => {
     const checkUser = async () => {
@@ -114,69 +139,6 @@ export default function Members() {
     checkUser()
   }, [router])
 
-  useEffect(() => {
-    const fetchMovies = async () => {
-      try {
-        const [popular, topRated, newReleases, comingSoon] = await Promise.all([
-          getMoviesByCategory('popular'),
-          getMoviesByCategory('top_rated'),
-          getMoviesByCategory('new_releases'),
-          getMoviesByCategory('coming_soon')
-        ]);
-
-        // Create an array of possible sort options with correct types
-        const sortOptions = [
-          { sortBy: 'popularity' as const, sortOrder: 'desc' as const },
-          { sortBy: 'ratings->>imdb' as const, sortOrder: 'desc' as const },
-          { sortBy: 'year' as const, sortOrder: 'desc' as const },
-          { sortBy: 'vote_count' as const, sortOrder: 'desc' as const }
-        ];
-
-        const genreMoviesPromises = mainGenres.map(genre => {
-          // Get a random sort option
-          const randomSort = sortOptions[Math.floor(Math.random() * sortOptions.length)];
-          
-          // Generate a random offset between 0 and 200 for more variety
-          const randomOffset = Math.floor(Math.random() * 200);
-          
-          // Randomly adjust the year range to get more variety
-          const currentYear = new Date().getFullYear();
-          const randomYearRange = Math.floor(Math.random() * 3); // 0, 1, or 2
-          const minYear = currentYear - (20 + randomYearRange * 10); // 20, 30, or 40 years back
-          
-          return fetchMoviesWithFilters({ 
-            genre,
-            minYear,
-            maxYear: currentYear,
-            minImdb: 5.0,
-            minVoteCount: 50,
-            minPopularity: 5,
-            ...randomSort,
-            limit: 20,
-            offset: randomOffset
-          });
-        });
-        
-        const genreMoviesResults = await Promise.all(genreMoviesPromises);
-        const genreMovies = Object.fromEntries(
-          mainGenres.map((genre, index) => [genre, genreMoviesResults[index].movies])
-        );
-
-        setMovies({
-          popular,
-          topRated,
-          newReleases,
-          comingSoon,
-          genreMovies
-        });
-      } catch (error) {
-        console.error('Error fetching movies:', error);
-      }
-    };
-
-    fetchMovies();
-  }, []);
-
   const handleSignOut = async () => {
     try {
       const { error } = await supabase.auth.signOut()
@@ -188,14 +150,11 @@ export default function Members() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSkeleton />
+  }
+
+  if (!isClient) {
+    return <LoadingSkeleton />
   }
 
   return (
@@ -204,33 +163,28 @@ export default function Members() {
       <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
         {/* No container or extra spacing here, header is just a border */}
       </header>
-      {/* Move HeroSection up directly under navbar */}
-      <HeroSection />
+      
+      {/* Hero Section with lazy loading */}
+      <Suspense fallback={<div className="h-[60vh] flex items-center justify-center"><LoadingSkeleton /></div>}>
+        <HeroSection />
+      </Suspense>
 
       {/* Main Content */}
       <main>
-        {/* Movie Sliders */}
-        <div className="container py-8">
-          <MovieSlidersClient 
-            initialMovies={{
-              popular: movies.popular,
-              topRated: movies.topRated,
-              newReleases: movies.newReleases,
-              comingSoon: movies.comingSoon,
-              genreMovies: movies.genreMovies
-            }}
-          />
-        </div>
+        {/* Movie Sliders with lazy loading */}
+        <Suspense fallback={<MovieSlidersSkeleton />}>
+          <MovieSlidersClient />
+        </Suspense>
 
-        {/* YTS Latest Movies */}
-        <div className="container py-8">
+        {/* YTS Latest Movies with lazy loading */}
+        <Suspense fallback={<div className="container py-8"><Skeleton className="h-64 w-full" /></div>}>
           <YtsLatestMoviesSlider />
-        </div>
+        </Suspense>
 
-        {/* News Section */}
-        <div className="container py-8">
+        {/* News Section with lazy loading */}
+        <Suspense fallback={<div className="container py-8"><Skeleton className="h-96 w-full" /></div>}>
           <NewsPreview />
-        </div>
+        </Suspense>
       </main>
     </div>
   )

@@ -129,7 +129,7 @@ export function YtsLatestMoviesSlider() {
     <div className="space-y-4">
       <MovieSlider 
         title="Latest Download" 
-        movies={movies}
+        movies={movies.slice(0, 20)}
       />
       {syncStatus && (
         <div className="text-center text-sm text-muted-foreground">

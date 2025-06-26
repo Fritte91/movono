@@ -39,8 +39,8 @@ export function TodayPick() {
             return hashA - hashB
           })
 
-          // Take the first 35 movies
-          const selectedMovies = shuffled.slice(0, 35)
+          // Take the first 20 movies
+          const selectedMovies = shuffled.slice(0, 20)
           
           setMovies(selectedMovies)
         } else {

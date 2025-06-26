@@ -23,5 +23,5 @@ export function TopRatedMoviesSlider() {
 
   if (loading) return <div>Loading top-rated movies...</div>;
 
-  return <MovieSlider movies={movies} title="Top Rated Movies" />;
+  return <MovieSlider movies={movies.slice(0, 20)} title="Top Rated Movies" />;
 }
