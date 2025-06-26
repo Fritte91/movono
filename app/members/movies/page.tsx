@@ -126,7 +126,7 @@ export default function MoviesPage() {
         const movies = await getMoviesFromSupabase(filterOptions);
         
         // Map the movies to match our interface
-        const mapped: Movie[] = (movies || [])
+        const mapped: Movie[] = (movies as any[] || [])
           .filter(movie => !!movie.imdb_id && !!movie.poster_url)
           .map((movie: any) => ({
             id: movie.imdb_id,
