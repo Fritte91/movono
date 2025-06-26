@@ -102,7 +102,7 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
   // Log the final src URL being used by the img tag for the first movie
   if (displayMovies && displayMovies.length > 0) {
     const firstMovie = displayMovies[0];
-    const imgSrc = firstMovie.poster_url && firstMovie.poster_url !== "N/A" ? firstMovie.poster_url : "/placeholder.svg";
+    const imgSrc = firstMovie.posterUrl && firstMovie.posterUrl !== "N/A" ? firstMovie.posterUrl : "/placeholder.svg";
     
   }
 
@@ -282,7 +282,7 @@ export function MovieSlider({ title, movies, onRefresh }: MovieSliderProps) {
         onClick={handleClick}
       >
         {safeMovies.map((movie) => {
-          const imgSrc = movie.poster_url && movie.poster_url !== "N/A" ? movie.poster_url : "/placeholder.svg";
+          const imgSrc = movie.posterUrl && movie.posterUrl !== "N/A" ? movie.posterUrl : "/placeholder.svg";
           return (
             <div
               key={movie.imdb_id}

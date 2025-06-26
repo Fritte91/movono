@@ -243,7 +243,7 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
                     <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
                       <div className="aspect-[2/3] relative">
                         <img
-                          src={movie.poster_url || "/placeholder.svg"}
+                          src={movie.posterUrl || "/placeholder.svg"}
                           alt={movie.title}
                           className="w-full h-full object-cover"
                         />

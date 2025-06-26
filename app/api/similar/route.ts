@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const transformedMovies = movies.map(movie => ({
       id: movie.id,
       title: movie.title,
-      poster_url: movie.poster_url,
+      posterUrl: movie.posterUrl,
       year: movie.year,
       imdb_id: movie.imdb_id,
       genre: movie.genre,

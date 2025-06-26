@@ -19,8 +19,7 @@ interface Movie {
   id: string;
   title: string;
   year: number;
-  poster_url: string;
-  posterUrl?: string;
+  posterUrl: string;
   imdb_id: string;
   genre: string[];
   ratings: {
@@ -127,13 +126,12 @@ export default function MoviesPage() {
         
         // Map the movies to match our interface
         const mapped: Movie[] = (movies as any[] || [])
-          .filter(movie => !!movie.imdb_id && !!movie.poster_url)
+          .filter(movie => !!movie.imdb_id && !!movie.posterUrl)
           .map((movie: any) => ({
             id: movie.imdb_id,
             title: movie.title,
             year: movie.year,
-            poster_url: movie.poster_url,
-            posterUrl: movie.poster_url,
+            posterUrl: movie.posterUrl,
             imdb_id: movie.imdb_id,
             genre: movie.genre || [],
             ratings: movie.ratings || { imdb: 0, rottenTomatoes: 'N/A', metacritic: 0 },
@@ -234,7 +232,7 @@ export default function MoviesPage() {
                 <Link key={movie.imdb_id} href={`/members/movie/${movie.imdb_id}`} className="group">
                   <div className="relative aspect-[2/3] overflow-hidden rounded-lg">
                     <img
-                      src={movie.poster_url}
+                      src={movie.posterUrl}
                       alt={movie.title}
                       className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />

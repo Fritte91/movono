@@ -129,19 +129,19 @@ export default function SearchPage() {
             id_type: 'imdb',
             unique_id: movie.id, // Use id as imdb_id
             imdb_id: movie.id, // Map id to imdb_id for compatibility
-            poster_url: movie.poster_url || movie.backdrop_url // Use backdrop_url as fallback
+            posterUrl: movie.posterUrl || movie.backdropUrl // Use backdropUrl as fallback
           }))
         })()
       ])
 
       // Process and combine results
       const allResults = [...miniResults, ...moviesResults]
-        .filter((movie: any) => !!movie.unique_id && !!movie.poster_url)
+        .filter((movie: any) => !!movie.unique_id && !!movie.posterUrl)
 
       const mapped = allResults.map((movie: any) => ({
         ...movie,
         imdb_id: movie.unique_id, // Use unique_id for both tables
-        poster_url: movie.poster_url,
+        posterUrl: movie.posterUrl,
       }))
 
       // Deduplicate based on unique_id
@@ -286,7 +286,7 @@ export default function SearchPage() {
                         <div className="movie-card rounded-lg overflow-hidden bg-card border border-border/50 h-full">
                           <div className="aspect-[2/3] relative">
                             <img
-                              src={movie.poster_url || "/placeholder.svg"}
+                              src={movie.posterUrl || "/placeholder.svg"}
                               alt={movie.title}
                               className="w-full h-full object-cover"
                             />

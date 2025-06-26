@@ -3,7 +3,7 @@ export interface Movie {
     id: string | number;
     title: string;
     year: number;
-    poster_url: string;
+    posterUrl: string;
     genre: string[];
     ratings: {
       imdb: number;
@@ -27,6 +27,7 @@ export interface Movie {
     production: string;
     website: string;
     imdb_id?: string;
+    imdbId?: string;
 }
 
 // Re-export the Movie type for backward compatibility

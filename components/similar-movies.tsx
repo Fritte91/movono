@@ -19,7 +19,7 @@ export function SimilarMovies({ movieId }: { movieId: string }) {
           const mappedMovies: Movie[] = data.movies.map((movie: any) => ({
             id: movie.imdb_id,
             title: movie.title,
-            poster_url: movie.poster_url,
+            posterUrl: movie.posterUrl,
             year: movie.year,
             imdb_id: movie.imdb_id,
             genre: movie.genre || [],

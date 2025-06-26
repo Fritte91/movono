@@ -24,8 +24,8 @@ export function TodayPick() {
           // Filter out movies without required data
           const validMovies = data.filter((movie: any) => 
             movie.imdb_id && 
-            movie.poster_url && 
-            movie.poster_url !== "N/A"
+            movie.posterUrl && 
+            movie.posterUrl !== "N/A"
           )
 
           if (validMovies.length === 0) {
@@ -110,7 +110,7 @@ export function TodayPick() {
           >
             <div className="aspect-[2/3] overflow-hidden rounded-lg bg-muted">
               <img
-                src={movie.poster_url || movie.posterUrl || '/placeholder.svg'}
+                src={movie.posterUrl || movie.posterUrl || '/placeholder.svg'}
                 alt={movie.title}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 loading="lazy"

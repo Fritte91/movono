@@ -33,7 +33,7 @@ export function GenreSlidersLazy({ genreList, genreSliders }: GenreSlidersLazyPr
               });
               return newMovies.map(movie => ({
                 ...movie,
-                posterUrl: movie.poster_url || movie.posterUrl || '/placeholder.svg',
+                posterUrl: movie.posterUrl || '/placeholder.svg',
               }));
             }}
           />
