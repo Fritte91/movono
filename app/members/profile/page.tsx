@@ -85,29 +85,33 @@ export default function ProfilePage() {
               return
             }
 
-            setUserData({
-              username: newProfile.username,
-              email: user.email || '',
-              bio: newProfile.bio || '',
-              country: newProfile.country || '',
-              language: newProfile.language || 'English',
-              avatar_url: newProfile.avatar_url,
-            })
-            setSelectedAvatarUrl(newProfile.avatar_url || "/placeholder.svg")
+            if (newProfile && typeof newProfile === 'object' && 'username' in newProfile) {
+              const np: any = newProfile;
+              setUserData({
+                username: np.username,
+                email: user.email || '',
+                bio: np.bio || '',
+                country: np.country || '',
+                language: np.language || 'English',
+                avatar_url: np.avatar_url,
+              })
+              setSelectedAvatarUrl(np.avatar_url || "/placeholder.svg")
+            }
           } else {
             console.error('Error loading profile:', profileError.message)
             return
           }
         } else {
+          const p: any = profile;
           setUserData({
-            username: profile.username,
+            username: p.username,
             email: user.email || '',
-            bio: profile.bio || '',
-            country: profile.country || '',
-            language: profile.language || 'English',
-            avatar_url: profile.avatar_url,
+            bio: p.bio || '',
+            country: p.country || '',
+            language: p.language || 'English',
+            avatar_url: p.avatar_url,
           })
-          setSelectedAvatarUrl(profile.avatar_url || "/placeholder.svg")
+          setSelectedAvatarUrl(p.avatar_url || "/placeholder.svg")
         }
 
         // Load collections with movies count
@@ -132,21 +136,24 @@ export default function ProfilePage() {
           console.error('Error loading collections:', collectionsError.message)
         } else {
           // Transform the data to include movies array and proper date objects
-          const collectionsWithMovies = userCollections?.map(collection => ({
-            ...collection,
-            id: collection.id,
-            name: collection.name,
-            description: collection.description,
-            coverImage: collection.cover_image,
-            isPublic: collection.is_public,
-            createdAt: new Date(collection.created_at),
-            updatedAt: new Date(collection.updated_at),
-            userId: collection.user_id,
-            movies: collection.collection_movies || [],
-            gradientColor1: collection.gradient_color1,
-            gradientColor2: collection.gradient_color2,
-            gradientAngle: collection.gradient_angle,
-          })) || []
+          const collectionsWithMovies = userCollections?.map(col => {
+            const collection: any = col;
+            const base: any = (collection && typeof collection === 'object' && !Array.isArray(collection)) ? collection : {};
+            return {
+              id: base.id,
+              name: base.name,
+              description: base.description,
+              coverImage: base.cover_image,
+              isPublic: base.is_public,
+              createdAt: base.created_at ? new Date(base.created_at) : new Date(),
+              updatedAt: base.updated_at ? new Date(base.updated_at) : new Date(),
+              userId: base.user_id,
+              movies: base.collection_movies || [],
+              gradientColor1: base.gradient_color1,
+              gradientColor2: base.gradient_color2,
+              gradientAngle: base.gradient_angle,
+            };
+          }) || []
           setCollections(collectionsWithMovies)
         }
 
