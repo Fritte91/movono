@@ -100,10 +100,29 @@ export function TodayPick() {
           <p className="text-muted-foreground">Handpicked movies for you today</p>
         </div>
       </div>
-      <MovieSlider 
-        title="Today's Pick" 
-        movies={movies} 
-      />
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-4">
+        {movies.map((movie) => (
+          <a
+            key={movie.imdb_id || movie.id}
+            href={`/members/movie/${movie.imdb_id || movie.id}`}
+            className="group block"
+            title={movie.title}
+          >
+            <div className="aspect-[2/3] overflow-hidden rounded-lg bg-muted">
+              <img
+                src={movie.poster_url || movie.posterUrl || '/placeholder.svg'}
+                alt={movie.title}
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                loading="lazy"
+              />
+            </div>
+            <div className="mt-2 text-center">
+              <h3 className="font-medium text-sm line-clamp-2">{movie.title}</h3>
+              <p className="text-xs text-muted-foreground">{movie.year}</p>
+            </div>
+          </a>
+        ))}
+      </div>
     </div>
   )
 } 

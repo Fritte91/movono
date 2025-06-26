@@ -39,7 +39,7 @@ export async function fetchMoviesFromSupabaseClient(
   let query = supabase
     .from("movies_mini")
     .select("id, imdb_id, title, year, poster_url, genre, ratings, vote_count, popularity")
-    .range(options.offset || 0, (options.offset || 0) + 19);
+    .range(options.offset || 0, (options.offset || 0) + 49);
 
   // Apply filters based on type
   switch (type) {

@@ -126,7 +126,7 @@ export function HeroSection() {
   }
 
   return (
-    <section className="relative h-[80vh] flex items-center">
+    <section className="relative h-[60vh] flex items-center pt-0 mt-0">
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-r from-black to-transparent opacity-90 z-10 hero-gradient"></div>
         <Image

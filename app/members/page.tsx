@@ -202,42 +202,13 @@ export default function Members() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="text-xl font-bold">Movono</span>
-            </Link>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2">
-                  {user?.email}
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href="/members/profile">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/members/collections">Collections</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleSignOut}>
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
+        {/* No container or extra spacing here, header is just a border */}
       </header>
+      {/* Move HeroSection up directly under navbar */}
+      <HeroSection />
 
       {/* Main Content */}
       <main>
-        {/* Hero Section */}
-        <HeroSection />
-
         {/* Movie Sliders */}
         <div className="container py-8">
           <MovieSlidersClient 

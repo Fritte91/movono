@@ -73,10 +73,13 @@ export function SimilarMovies({ movieId }: { movieId: string }) {
     return null;
   }
 
+  // Only show up to 4 similar movies
+  const moviesToShow = movies.slice(0, 4);
+
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">Similar Movies</h2>
-      <MovieSlider title="Similar Movies" movies={movies} />
+      <MovieSlider title="Similar Movies" movies={moviesToShow} />
     </div>
   );
 } 

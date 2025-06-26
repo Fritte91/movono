@@ -35,8 +35,8 @@ export async function getSimilarMovies(movieId: string): Promise<Movie[]> {
     const data: TMDBSimilarMoviesResponse = await response.json();
     const tmdbMovies = data.results || [];
 
-    // Take only the first 10 similar movies
-    const limitedMovies = tmdbMovies.slice(0, 10);
+    // Take only the first 4 similar movies
+    const limitedMovies = tmdbMovies.slice(0, 4);
 
     const movies = await Promise.all(
       limitedMovies.map(async (movie) => {
