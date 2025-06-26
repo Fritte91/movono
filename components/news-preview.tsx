@@ -4,8 +4,8 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Calendar, ChevronRight, Newspaper } from "lucide-react"
 import { getRecentArticles, categories } from "@/lib/news-data"
 
-function formatDate(dateString: string) {
-  return new Date(dateString).toLocaleDateString("en-US", {
+function formatDate(date: Date) {
+  return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -50,7 +50,7 @@ export function NewsPreview() {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-xs text-muted-foreground flex items-center">
                     <Calendar className="h-3 w-3 mr-1" />
-                    {formatDate(article.publishedAt)}
+                    {formatDate(new Date(article.publishedAt))}
                   </span>
                 </div>
                 <h3 className="font-bold text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">

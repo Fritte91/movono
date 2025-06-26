@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { getPopularMovies } from "@/lib/movie-data";
-import MovieSlider from "@/components/MovieSlider"; // Assuming you already have the MovieSlider component
+import { MovieSlider } from "@/components/movie-slider";
+import { getPopularMovies, Movie } from "@/lib/movie-data";
 
 export function PopularMoviesSlider() {
-  const [movies, setMovies] = useState([]);
+  const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

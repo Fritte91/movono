@@ -40,5 +40,8 @@ export default async function MovieCommentsServer({ movieId }: MovieCommentsServ
     return <div className="text-red-500">Error loading comments</div>;
   }
 
-  return <MovieCommentsClient movieId={movieId} initialComments={comments || []} />;
+  // Ensure comments is a valid array and cast to Comment[]
+  const validComments = Array.isArray(comments) ? (comments as unknown as Comment[]) : [];
+
+  return <MovieCommentsClient movieId={movieId} initialComments={validComments} />;
 }

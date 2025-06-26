@@ -1,6 +1,6 @@
 import { supabase } from '../supabase-client';
 
-export async function getMoviesFromSupabase({ genre, sortBy = "ratings->>imdb", limit = 500 } = {}) {
+export async function getMoviesFromSupabase({ genre = "", sortBy = "ratings->>imdb", limit = 500 } = {}) {
   let query = supabase
     .from('movies_mini')
     .select('id, title, year, poster_url, imdb_id, genre, ratings');

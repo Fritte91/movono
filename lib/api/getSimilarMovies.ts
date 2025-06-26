@@ -48,7 +48,7 @@ export async function getSimilarMovies(movieId: string): Promise<Movie[]> {
         return {
           id: imdbId || `tmdb-${movie.id}`,
           title: movie.title || "Unknown Title",
-          poster_url: posterUrl,
+          posterUrl: posterUrl,
           year: movie.release_date ? parseInt(movie.release_date.split("-")[0]) : 0,
           imdb_id: imdbId || undefined,
           genre: movie.genre_ids

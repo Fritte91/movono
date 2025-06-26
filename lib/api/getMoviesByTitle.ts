@@ -1,5 +1,5 @@
 // lib/api/getMoviesByTitle.ts
-import { getMovieByIdFromAPI } from "./getMovieById";
+import { getMovieById } from "./getMovieById";
 import { Movie } from "../types";
 
 export async function getMoviesByTitle(titles: string[]): Promise<Movie[]> {
@@ -19,11 +19,11 @@ export async function getMoviesByTitle(titles: string[]): Promise<Movie[]> {
         console.warn(`OMDb movie not found for title: ${title}`);
         return null;
       }
-      return await getMovieByIdFromAPI(movie.imdbID);
+      return await getMovieById(movie.imdbID);
     });
 
     const movies = await Promise.all(fetches);
-    return movies.filter((movie): movie is Movie => movie !== null);
+    return movies.filter(movie => movie !== null) as Movie[];
   } catch (error) {
     console.error("Error fetching movies by title:", error);
     return [];

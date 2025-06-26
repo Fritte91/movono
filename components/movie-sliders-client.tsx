@@ -98,7 +98,7 @@ export function MovieSlidersClient({ initialMovies }: MovieSlidersClientProps) {
                   imdb_id: movieData.id, // Use the TMDB ID (tmdb-{id}) as imdb_id for the slider
                   title: movie.title,
                   year: movie.year,
-                  poster_url: movieData.posterUrl,
+                  posterUrl: movieData.posterUrl ? movieData.posterUrl : (movieData.poster_url ? movieData.poster_url : '/placeholder.svg'),
                   genre: movie.genre || [],
                   ratings: movie.ratings || { imdb: 0, rottenTomatoes: '0', metacritic: 0 },
                   runtime: movie.runtime || 0,

@@ -64,31 +64,64 @@ export default function CollectionDetailPage({ params }: { params: Promise<{ id:
           return;
         }
 
+        // Check if data is an error object
+        if (data && typeof data === 'object' && 'error' in data) {
+          console.error('Supabase error:', data);
+          router.push("/members/profile?tab=collections");
+          return;
+        }
+
+        // Cast data to any to bypass strict type checking
+        const safeData = data as any;
+
         // Map the fetched data to the expected Collection type
         const fetchedCollection: Collection = {
-          id: data.id,
-          name: data.name,
-          description: data.description,
-          coverImage: data.cover_image || '/placeholder.svg',
-          isPublic: data.is_public,
-          createdAt: new Date(data.created_at),
-          updatedAt: new Date(data.updated_at),
-          userId: data.user_id,
+          id: safeData.id,
+          name: safeData.name,
+          description: safeData.description,
+          coverImage: safeData.cover_image || '/placeholder.svg',
+          isPublic: safeData.is_public,
+          createdAt: new Date(safeData.created_at),
+          updatedAt: new Date(safeData.updated_at),
+          userId: safeData.user_id,
           // Extract movie data from both movies and movies_mini tables
-          movies: data.collection_movies?.map((cm: any) => {
+          movies: safeData.collection_movies?.map((cm: any) => {
             // Use data from movies table if available, otherwise use movies_mini
             const movieData = cm.movies || cm.movies_mini;
             if (!movieData?.imdb_id || !movieData?.title) return null;
             return {
-              imdb_id: movieData.imdb_id,
+              id: movieData.imdb_id,
               title: movieData.title,
-              poster_url: movieData.poster_url || '/placeholder.svg',
+              posterUrl: movieData.poster_url || '/placeholder.svg',
               year: movieData.year || new Date().getFullYear(),
+              genre: [],
+              ratings: {
+                imdb: 0,
+                rottenTomatoes: "N/A",
+                metacritic: 0
+              },
+              runtime: 0,
+              released: "",
+              director: "",
+              writer: "",
+              actors: [],
+              plot: "",
+              language: [],
+              country: [],
+              awards: "",
+              metascore: 0,
+              imdbVotes: 0,
+              type: "movie",
+              dvd: "",
+              boxOffice: "",
+              production: "",
+              website: "",
+              imdb_id: movieData.imdb_id
             };
           }).filter((movie: Movie | null): movie is Movie => movie !== null) || [],
-          gradientColor1: data.gradient_color1,
-          gradientColor2: data.gradient_color2,
-          gradientAngle: data.gradient_angle,
+          gradientColor1: safeData.gradient_color1,
+          gradientColor2: safeData.gradient_color2,
+          gradientAngle: safeData.gradient_angle,
         };
         setCollection(fetchedCollection);
       } catch (error) {

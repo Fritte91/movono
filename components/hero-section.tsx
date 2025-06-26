@@ -21,6 +21,14 @@ interface StoredMovie {
   timestamp: number;
 }
 
+function isSupabaseError(obj: any): obj is { error: true } {
+  return obj && typeof obj === 'object' && 'error' in obj && obj.error === true;
+}
+
+function isValidMovie(movie: any): movie is FeaturedMovie {
+  return movie && typeof movie.id === 'string' && typeof movie.title === 'string' && typeof movie.plot === 'string' && Array.isArray(movie.genre) && typeof movie.backdrop_url === 'string' && typeof movie.imdb_id === 'string';
+}
+
 export function HeroSection() {
   const [selectedMovie, setSelectedMovie] = useState<FeaturedMovie | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,7 +69,7 @@ export function HeroSection() {
           return;
         }
 
-        if (!data || data.length === 0) {
+        if (Array.isArray(data) && data.length === 0) {
           // If no movies found with filters, try without them
           const { data: unfilteredData, error: unfilteredError } = await supabase
             .from('movies_mini')
@@ -74,31 +82,30 @@ export function HeroSection() {
             return;
           }
 
-          if (unfilteredData && unfilteredData.length > 0 && isMounted) {
+          if (Array.isArray(unfilteredData) && unfilteredData.length > 0 && isMounted && !isSupabaseError(unfilteredData)) {
             const randomIndex = Math.floor(Math.random() * unfilteredData.length);
             const newMovie = unfilteredData[randomIndex];
-            
+            if (isValidMovie(newMovie)) {
+              const movieData: StoredMovie = {
+                movie: newMovie,
+                timestamp: Date.now()
+              };
+              localStorage.setItem('featuredMovie', JSON.stringify(movieData));
+              setSelectedMovie(newMovie);
+            }
+          }
+        } else if (Array.isArray(data) && data.length > 0 && isMounted && !isSupabaseError(data)) {
+          // Select a random movie from the filtered results
+          const randomIndex = Math.floor(Math.random() * data.length);
+          const newMovie = data[randomIndex];
+          if (isValidMovie(newMovie)) {
             const movieData: StoredMovie = {
               movie: newMovie,
               timestamp: Date.now()
             };
             localStorage.setItem('featuredMovie', JSON.stringify(movieData));
-            
             setSelectedMovie(newMovie);
           }
-        } else if (data && data.length > 0 && isMounted) {
-          // Select a random movie from the filtered results
-          const randomIndex = Math.floor(Math.random() * data.length);
-          const newMovie = data[randomIndex];
-          
-          // Store the new movie and current timestamp
-          const movieData: StoredMovie = {
-            movie: newMovie,
-            timestamp: Date.now()
-          };
-          localStorage.setItem('featuredMovie', JSON.stringify(movieData));
-          
-          setSelectedMovie(newMovie);
         }
       } catch (error) {
         console.error('Error in fetchFeaturedMovie:', error);

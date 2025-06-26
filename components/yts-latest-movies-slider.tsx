@@ -21,10 +21,10 @@ export function YtsLatestMoviesSlider() {
   const [syncStatus, setSyncStatus] = useState<string>("");
 
   const transformYtsMovie = (movie: YtsMovie): Movie => ({
-    id: movie.id,
+    id: String(movie.id),
     title: movie.title_english,
     year: movie.year,
-    poster_url: movie.large_cover_image,
+    posterUrl: movie.large_cover_image,
     genre: movie.genres,
     runtime: movie.runtime,
     ratings: {

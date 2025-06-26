@@ -23,13 +23,9 @@ export function GenreSlidersLazy({ genreList, genreSliders }: GenreSlidersLazyPr
             title={genre} 
             movies={genreSliders[idx]} 
             onRefresh={async () => {
-              const newMovies = await fetchMoviesFromSupabaseClient({ 
+              const newMovies = await fetchMoviesFromSupabaseClient("genre", { 
                 genre, 
-                minYear: 1990, 
-                maxYear: 2025, 
-                minImdb: 6, 
-                sortBy: 'year', 
-                limit: 20 
+                offset: 0
               });
               return newMovies.map(movie => ({
                 ...movie,

@@ -246,7 +246,10 @@ export async function getUserAchievements(userId: string): Promise<Achievement[]
 
     // Map achievements with progress and unlocked status
     return achievements.map(achievement => {
-      const unlockedAchievement = userAchievements?.find(ua => ua.achievement_id === achievement.id);
+      const validUserAchievements = Array.isArray(userAchievements)
+        ? (userAchievements.filter(ua => ua && typeof ua === 'object' && 'achievement_id' in ua) as { achievement_id: string; unlocked_at?: string }[])
+        : [];
+      const unlockedAchievement = validUserAchievements.find(ua => ua.achievement_id === achievement.id);
       
       let current = 0;
       switch (achievement.category) {
@@ -264,16 +267,18 @@ export async function getUserAchievements(userId: string): Promise<Achievement[]
           break;
         case 'social':
           if (achievement.id === 'profile-complete') {
-            current = profileData?.bio && profileData?.country && profileData?.language ? 1 : 0;
+            const safeProfile = profileData as any;
+            current = safeProfile && safeProfile.bio && safeProfile.country && safeProfile.language ? 1 : 0;
           } else if (achievement.id === 'avatar-set') {
-            current = profileData?.avatar_url ? 1 : 0;
+            const safeProfile = profileData as any;
+            current = safeProfile && safeProfile.avatar_url ? 1 : 0;
           }
           break;
       }
 
       return {
         ...achievement,
-        unlockedAt: unlockedAchievement?.unlocked_at ? new Date(unlockedAchievement.unlocked_at) : undefined,
+        unlockedAt: unlockedAchievement && 'unlocked_at' in unlockedAchievement && unlockedAchievement.unlocked_at ? new Date(unlockedAchievement.unlocked_at) : undefined,
         progress: achievement.progress ? {
           ...achievement.progress,
           current: Math.min(current, achievement.progress.target)

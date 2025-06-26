@@ -1,5 +1,5 @@
 import { createServerClient, createBrowserClient, type CookieOptions } from '@supabase/ssr';
-import { Database } from '@/lib/database.types';
+import { Database } from '@/types/supabase';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://witpoqobiuvhokyjopod.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpdHBvcW9iaXV2aG9reWpvcG9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc2Mjg1NDYsImV4cCI6MjA2MzIwNDU0Nn0.-a_2H_9eJP3lPMOcaK19kWVGrVhzGnhzqmggY9my9RQ'
@@ -78,7 +78,7 @@ export async function fetchMoviesFromSupabase({
   return data;
 }
 
-export async function getMoviesFromSupabase({ genre, sortBy = 'ratings->>imdb', limit = 500 } = {}, cookieStore?: CookieStore) {
+export async function getMoviesFromSupabase({ genre = "", sortBy = 'ratings->>imdb', limit = 500 } = {}, cookieStore?: CookieStore) {
   const supabase = createSupabaseServerClient(cookieStore);
 
   let query = supabase.from('movies').select('*');

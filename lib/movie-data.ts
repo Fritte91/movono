@@ -26,11 +26,11 @@ export const popularMovies: Movie[] = [
     title: "Inception",
     year: 2010,
     director: "Christopher Nolan",
-    cast: ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Ellen Page"],
+    writer: "",
+    actors: ["Leonardo DiCaprio", "Joseph Gordon-Levitt", "Ellen Page"],
     genre: ["Action", "Adventure", "Sci-Fi"],
     plot: "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a C.E.O.",
     posterUrl: "/13 Sins.jpeg",
-    trailerUrl: "https://www.youtube.com/embed/YoHD9XEInc0?si=ibM54OX4739kFj7d",
     runtime: 148,
     ratings: {
       imdb: 8.8,
@@ -39,18 +39,26 @@ export const popularMovies: Movie[] = [
     },
     language: ["English"],
     country: ["USA"],
-    similar: ["2", "3", "4"]
+    released: "2010-07-16",
+    awards: "",
+    metascore: 74,
+    imdbVotes: 0,
+    type: "movie",
+    dvd: "",
+    boxOffice: "",
+    production: "",
+    website: ""
   },
   {
     id: "2",
     title: "The Dark Knight",
     year: 2008,
     director: "Christopher Nolan",
-    cast: ["Christian Bale", "Heath Ledger", "Aaron Eckhart"],
+    writer: "",
+    actors: ["Christian Bale", "Heath Ledger", "Aaron Eckhart"],
     genre: ["Action", "Crime", "Drama"],
     plot: "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.",
     posterUrl: "/7500.jpeg",
-    trailerUrl: "https://www.youtube.com/embed/EXeTwQWrcwY",
     runtime: 152,
     ratings: {
       imdb: 9.0,
@@ -59,7 +67,15 @@ export const popularMovies: Movie[] = [
     },
     language: ["English"],
     country: ["USA"],
-    similar: ["1", "3", "5"]
+    released: "2008-07-18",
+    awards: "",
+    metascore: 84,
+    imdbVotes: 0,
+    type: "movie",
+    dvd: "",
+    boxOffice: "",
+    production: "",
+    website: ""
   }
 ];
 

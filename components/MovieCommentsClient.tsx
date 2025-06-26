@@ -25,6 +25,14 @@ interface MovieCommentsClientProps {
   initialComments: Comment[];
 }
 
+function isValidCommentArray(arr: any): arr is Comment[] {
+  return Array.isArray(arr) && arr.every(comment => comment && typeof comment.id === 'string' && typeof comment.content === 'string');
+}
+
+function isSupabaseErrorArray(arr: any): boolean {
+  return Array.isArray(arr) && arr.length > 0 && arr[0] && typeof arr[0] === 'object' && 'error' in arr[0];
+}
+
 export default function MovieCommentsClient({ movieId, initialComments }: MovieCommentsClientProps) {
   const [comments, setComments] = useState<Comment[]>(initialComments);
   const [newComment, setNewComment] = useState('');
@@ -119,7 +127,11 @@ export default function MovieCommentsClient({ movieId, initialComments }: MovieC
       }
 
       // Success case
-      setComments(updatedComments || []);
+      if (isValidCommentArray(updatedComments) && !isSupabaseErrorArray(updatedComments)) {
+        setComments(updatedComments);
+      } else {
+        setComments([]);
+      }
       setNewComment('');
       setIsSubmitting(false);
       

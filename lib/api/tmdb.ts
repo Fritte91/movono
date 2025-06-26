@@ -70,6 +70,27 @@ export async function getUpcomingMovies(): Promise<Movie[]> {
                 .map((id) => TMDB_GENRES[id])
                 .filter((genre): genre is string => genre !== undefined)
             : [],
+          ratings: {
+            imdb: 0,
+            rottenTomatoes: "N/A",
+            metacritic: 0
+          },
+          runtime: 0,
+          released: movie.release_date || "",
+          director: "",
+          writer: "",
+          actors: [],
+          plot: "",
+          language: [],
+          country: [],
+          awards: "",
+          metascore: 0,
+          imdbVotes: 0,
+          type: "movie",
+          dvd: "",
+          boxOffice: "",
+          production: "",
+          website: ""
         };
       })
     );
